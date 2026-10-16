@@ -2,16 +2,18 @@
 /*
  * Navigation.astro
  * Shared navigation links for the website.
- * Imported by BaseLayout so navigation only needs to be maintained here.
+ * Imported by BaseLayout so navigation only needs to be maintained here
  */
+
+// Read the configured site path and remove any trailing slash
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 ---
 
 <nav aria-label="Main navigation">
-    <!-- Root-relative paths work locally.
-         Before GitHub Pages deployment, account for the repository base path. -->
-    <a href="/">Home</a>
-    <a href="/robots/">Robots</a>
-    <a href="/sponsors/">Sponsors</a>
+    <!-- Include the repository path so links work on GitHub Pages. -->
+    <a href={`${base}/`}>Home</a>
+    <a href={`${base}/robots/`}>Robots</a>
+    <a href={`${base}/sponsors/`}>Sponsors</a>
 </nav>
 
 <style>

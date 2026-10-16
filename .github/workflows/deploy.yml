@@ -1,0 +1,53 @@
+# deploy.yml
+# Builds the Astro website and publishes it to GitHub Pages
+# Runs automatically whenever commits are pushed to master
+
+name: Deploy website
+
+on:
+  push:
+    branches: [master]
+
+  # Allow deployment to be started manually from GitHub's Actions tab
+  workflow_dispatch:
+
+# Grant only the permissions required to read code and publish Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let an active deployment finish before starting another.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Download this repository's source into the build environment.
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      # Install dependencies, build Astro, and upload the generated site.
+      - name: Build website
+        uses: withastro/action@v6
+        with:
+          node-version: 22
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    # Associate the deployment with GitHub's Pages environment.
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      # Publish the site artifact produced by the build job.
+      - name: Publish website
+        id: deployment
+        uses: actions/deploy-pages@v5
