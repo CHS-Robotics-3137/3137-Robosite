@@ -1,0 +1,22 @@
+# .gitignore
+# Keeps generated files, local settings, and secrets out of Git tracking.
+
+# Installed packages: recreated using npm.
+node_modules/
+
+# Generated website output and Astro's local cache.
+dist/
+.astro/
+
+# macOS folder metadata.
+.DS_Store
+
+# Local environment files may contain credentials.
+.env
+.env.*
+
+# Allow a deliberately sanitized example environment file.
+!.env.example
+
+# Local debug logs.
+npm-debug.log*

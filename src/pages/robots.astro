@@ -1,0 +1,32 @@
+---
+/*
+ * robots.astro
+ * Displays the team's robots by season
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const robots = [
+    {
+        name: "Example Robot",
+        season: 2026,
+        description: "Replace this with information about your robot."
+    },
+    {
+        name: "Another Robot",
+        season: 2025,
+        description: "Replace this with a previous season's robot."
+    }
+];
+---
+
+<BaseLayout title="Our Robots">
+    <h1>Our Robots</h1>
+
+    <!-- Generate one self-contained article for each robot in the array -->
+    {robots.map((robot) => (
+        <article>
+            <h2>{robot.name} — {robot.season}</h2>
+            <p>{robot.description}</p>
+        </article>
+    ))}
+</BaseLayout>

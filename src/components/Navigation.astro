@@ -1,0 +1,37 @@
+---
+/*
+ * Navigation.astro
+ * Shared navigation links for the website.
+ * Imported by BaseLayout so navigation only needs to be maintained here.
+ */
+---
+
+<nav aria-label="Main navigation">
+    <!-- Root-relative paths work locally.
+         Before GitHub Pages deployment, account for the repository base path. -->
+    <a href="/">Home</a>
+    <a href="/robots/">Robots</a>
+    <a href="/sponsors/">Sponsors</a>
+</nav>
+
+<style>
+    nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+        padding: 16px;
+        background: #142236;
+    }
+
+    a {
+        color: #8cf2c3;
+        font-family: system-ui, sans-serif;
+        font-weight: bold;
+        text-decoration: none;
+    }
+
+    a:hover,
+    a:focus-visible {
+        text-decoration: underline;
+    }
+</style>

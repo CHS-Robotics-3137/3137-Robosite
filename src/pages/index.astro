@@ -1,0 +1,19 @@
+---
+/*
+ * index.astro
+ * The website's homepage
+ * To test run: npm run dev
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const teamName = "Connetquot Robotics";
+const teamNumber = 3137;
+---
+
+<BaseLayout title={`${teamName} — Home`}>
+    <!-- The main heading identifies the team to visitors. -->
+    <h1>{teamName} - Team {teamNumber}</h1>
+
+    <!-- Start with basic information; visual design can come later. -->
+    <p>Our website starts here.</p>
+</BaseLayout>

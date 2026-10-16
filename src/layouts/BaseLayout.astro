@@ -1,0 +1,30 @@
+---
+/**
+ * BaseLayout.astro
+ * Shared HTML document structure for the website
+ * Provides page metadata, navigation, and a place for each page's content
+ */
+import Navigation from "../components/Navigation.astro";
+
+// Pages may supply a browser-tab title; otherwise use this default
+const { title = "Our Robotics Team" } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <!-- Allow the layout to adapt to the device's screen width -->
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>{title}</title>
+    </head>
+    <body>
+        <!-- Keep navigation consistent across every page using this layout -->
+        <Navigation />
+
+        <main>
+            <!-- Astro inserts the individual page's content here -->
+            <slot />
+        </main>
+    </body>
+</html>
