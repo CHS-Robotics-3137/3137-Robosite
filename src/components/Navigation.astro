@@ -21,9 +21,9 @@ const links = [
 <nav class="team-navigation" aria-label="Main navigation">
     <!-- For now, the team logo links home; its action will change to something fun. -->
     <a class="team-logo" href={homeUrl} aria-label="Team 3137 home">
-        <!-- Serve the optimized animated WebP unchanged to preserve its frames. -->
+        <!-- Serve the animated WebP unchanged; data-image-component skips Astro's image suggestion. -->
         <img
-            data-image-component
+            data-image-component 
             src={`${base}/images/branding/Nav_Loop.webp`}
             alt=""
             width="640"

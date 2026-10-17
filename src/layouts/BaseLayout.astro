@@ -9,6 +9,8 @@ import "../styles/theme.css";
 
 // Pages may supply a browser-tab title; otherwise use this default
 const { title = "Our Robotics Team" } = Astro.props;
+// A supplied hero slot means navigation should overlap its bottom edge.
+const hasHero = Astro.slots.has("hero");
 ---
 
 <!doctype html>
@@ -30,7 +32,12 @@ const { title = "Our Robotics Team" } = Astro.props;
         <slot name="hero" />
 
         <!-- Stick to the top once scrolling brings the navigation there. -->
-        <div class="sticky-navigation">
+        <div
+            class:list={[
+                "sticky-navigation",
+                { "overlaps-hero": hasHero },
+            ]}
+        >
             <Navigation />
         </div>
 
@@ -42,14 +49,28 @@ const { title = "Our Robotics Team" } = Astro.props;
 </html>
 
 <style>
-    /* Keep navigation visible above page content once it reaches the top. */
+    /*
+     * Shared page foundation.
+     * Apply the same background, text color, and body font on every page.
+     */
+    :global(body) {
+        margin: 0;
+        min-height: 100vh;
+        background-color: var(--color-background);
+        color: var(--color-text);
+        font-family: var(--font-body);
+        line-height: 1.6;
+    }
+
+    /* Keep navigation above page content once scrolling brings it to the top. */
     .sticky-navigation {
         position: sticky;
         top: 0;
         z-index: 100;
     }
-    /* Overlap the full-height homepage photo without affecting other pages. */
-    :global(body:has(.home-hero)) .sticky-navigation {
+
+    /* Pull navigation over the hero only on pages that supply the hero slot. */
+    .sticky-navigation.overlaps-hero {
         margin-top: calc(-1 * var(--nav-height));
     }
 </style>

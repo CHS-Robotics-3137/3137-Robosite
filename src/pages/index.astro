@@ -42,26 +42,12 @@ const teamNumber = 3137;
             <p>
                 Connetquot Robotics, Team 3137, is our school's FIRST Robotics
                 Competition team.
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
+            </p>
+            <p>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris hendrerit, dui a dapibus imperdiet, lectus ex efficitur odio, non luctus velit justo ac enim. Proin a luctus lectus, ut euismod eros. Donec iaculis volutpat ante, ut fermentum elit porttitor vitae. Aliquam vitae nunc ornare, fringilla purus eget, fringilla ex. In sed lacus condimentum, sodales felis sit amet, sodales turpis. Nam a ullamcorper leo. Nulla congue orci commodo eleifend mattis. Cras sagittis magna lacus, quis feugiat magna hendrerit ac. Phasellus lorem ex, convallis id neque vitae, tristique laoreet enim. Nulla elementum congue nunc vel iaculis. Vivamus suscipit nisl ac semper dignissim. Phasellus imperdiet vulputate metus, non dapibus eros feugiat vel. Quisque lobortis malesuada tempor. Praesent porttitor consequat risus.
+            </p>
+            <p>
+                Nam imperdiet vehicula erat. Integer aliquet dignissim lacinia. Suspendisse pretium, libero ut tempor vestibulum, turpis eros dictum nibh, mattis congue metus mauris vel lorem. Suspendisse tempor est non tristique facilisis. Aenean libero odio, lacinia ac metus id, efficitur tempor eros. Nam pulvinar nisl nisi, non pharetra urna fringilla ullamcorper. Fusce sit amet fermentum dolor. Nullam aliquam tellus a purus bibendum, in venenatis neque consequat. Integer at molestie est, ac commodo enim. Ut et ligula id ligula euismod vulputate ac a sapien.
             </p>
         </section>
     </div>
@@ -69,47 +55,11 @@ const teamNumber = 3137;
 
 <style>
     /*
-     * Homepage presentation.
-     * Colors and fonts come from theme.css.
-     * The body rule remains homepage specific for now.
+     * Homepage-specific layout, hero presentation, and mobile adjustments.
+     * BaseLayout supplies the shared body styling.
+     * Theme variables supply reusable colors, fonts, and navigation height.
+     * Fixed hero contrast effects remain local to this file.
      */
-    :global(body:has(.home-content)) {
-        margin: 0;
-        min-height: 100vh;
-        background-color: var(--color-background);
-        color: var(--color-text);
-        font-family: var(--font-body);
-        line-height: 1.6;
-    }
-
-    /* Center the content area and keep text away from screen edges. */
-    .home-content {
-        max-width: 1100px;
-        margin-inline: auto;
-        padding: 64px 24px;
-    }
-
-    /* Scale the heading to fit both narrow and wide screens. */
-    .home-title {
-        margin: 0 0 24px;
-        max-width: 900px;
-        font-family: var(--font-heading);
-        font-size: clamp(2.5rem, 6vw, 5rem);
-        line-height: 1.1;
-        letter-spacing: -0.04em;
-    }
-
-    /* Keep paragraphs readable rather than stretching across the screen. */
-    p {
-        max-width: 65ch;
-        color: var(--color-text-muted);
-        font-size: 1.1rem;
-    }
-
-    /* Separate the introduction from the next section. */
-    section {
-        margin-top: 64px;
-    }
 
     /* Fill most of the opening screen without inheriting section spacing. */
     .home-hero {
@@ -160,6 +110,16 @@ const teamNumber = 3137;
         padding: 64px 24px calc(64px + var(--nav-height));
     }
 
+    /* Scale the heading to fit both narrow and wide screens. */
+    .home-title {
+        margin: 0 0 24px;
+        max-width: 900px;
+        font-family: var(--font-heading);
+        font-size: clamp(2.5rem, 6vw, 5rem);
+        line-height: 1.1;
+        letter-spacing: -0.04em;
+    }
+
     /* Override the normal paragraph styling for text over the photo. */
     .hero-team-number {
         margin: 0 0 16px;
@@ -173,6 +133,25 @@ const teamNumber = 3137;
     /* Remove the heading's usual bottom gap inside the hero. */
     .home-hero .home-title {
         margin-bottom: 0;
+    }
+
+    /* Center the content area and keep text away from screen edges. */
+    .home-content {
+        max-width: 1100px;
+        margin-inline: auto;
+        padding: 64px 24px;
+    }
+
+    /* Keep paragraphs readable rather than stretching across the screen. */
+    p {
+        max-width: 65ch;
+        color: var(--color-text-muted);
+        font-size: 1.1rem;
+    }
+
+    /* Separate the introduction from the next section. */
+    section {
+        margin-top: 64px;
     }
 
     /* The content container already provides space below the banner. */

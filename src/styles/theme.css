@@ -1,23 +1,85 @@
 /*
  * theme.css
- * Central colors and fonts for the website
- * It keeps the design consistent and allows for seasonal shifts
+ * Central design settings shared by pages through BaseLayout.astro.
+ *
+ * Change values here to adjust the shared palette, fonts, or navbar.
+ * A variable affects only the CSS rules that reference it.
+ *
+ * Fixed hero colors and darkening gradients remain in index.astro.
+ * Image colors, including the animated logo, are not controlled here.
  */
 
 :root {
-    /* Neutral starting palette */
+    /* ---------- Shared page colors ---------- */
+
+    /* Background behind ordinary page content, including below the hero. */
     --color-background: #f4f4f2;
+
+    /* Default text color inherited from the body, including ordinary headings. */
     --color-text: #202124;
+
+    /*
+     * Secondary text color.
+     * Currently used by homepage paragraphs; the hero team-number line
+     * overrides this with white for contrast over the photo.
+     */
     --color-text-muted: #555b65;
+
+    /*
+     * Reserved accent color for future buttons, highlights, or decorative details.
+     * Not currently referenced by the files you supplied, so changing it
+     * will not yet produce a visible difference.
+     */
     --color-accent: #b42332;
 
-    /* Use installed fonts for now; no font download is required. */
+
+    /* ---------- Shared fonts ---------- */
+
+    /*
+     * Default page font, also explicitly used by the navbar.
+     * These installed-font fallbacks require no external font download.
+     */
     --font-body: Arial, Helvetica, sans-serif;
+
+    /*
+     * Font used explicitly by the large homepage hero heading.
+     * Other headings currently inherit the body font unless styled separately.
+     */
     --font-heading: Arial, Helvetica, sans-serif;
 
-    /* Shared navigation styling and its overlap with the homepage hero. */
+
+    /* ---------- Navigation appearance ---------- */
+
+    /* Solid background behind the navbar logo and page links. */
     --nav-background: #000;
+
+    /*
+     * Navbar link text and keyboard-focus outline color.
+     * Does not recolor the logo image.
+     */
     --nav-text: #fff;
+
+
+    /* ---------- Navigation sizing ---------- */
+
+    /*
+     * Navbar height on desktop and mobile.
+     * Also controls:
+     * - How far BaseLayout overlaps the navbar onto a supplied hero.
+     * - Extra bottom padding that keeps homepage hero text above the navbar.
+     *
+     * Logo dimensions are currently set separately in Navigation.astro.
+     */
     --nav-height: 88px;
+
+    /*
+     * Page-link text size inside the navbar.
+     * clamp(minimum, preferred, maximum):
+     * - Never smaller than 1rem.
+     * - Scales with viewport width using 2vw.
+     * - Never larger than 1.3rem.
+     *
+     * rem follows the root font size; vw follows the viewport width.
+     */
     --nav-font-size: clamp(1rem, 2vw, 1.3rem);
 }
