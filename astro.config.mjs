@@ -13,4 +13,22 @@ export default defineConfig({
 
     // Use consistent slash-ended page URLs.
     trailingSlash: "always",
+
+    // Keep generated CSS compatible with Safari 15, including iOS 15.
+    vite: {
+        css: {
+            transformer: "lightningcss",
+            lightningcss: {
+                // Lightning CSS represents versions as major << 16.
+                targets: {
+                    safari: 15 << 16,
+                    ios_saf: 15 << 16,
+                },
+            },
+        },
+        build: {
+            // Apply the same compatibility goal to production CSS
+            cssTarget: "safari15",
+        },
+    },
 });

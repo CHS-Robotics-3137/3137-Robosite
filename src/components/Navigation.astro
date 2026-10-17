@@ -116,8 +116,7 @@ const links = [
         border-radius: 2px;
     }
 
-    /* Give visible links more room on narrow phones. */
-        /* Use equal visible gaps between the logo and links on narrow screens. */
+    /* Use equal gaps between the logo and links on narrow screens. */
     @media (max-width: 480px) {
         .team-navigation {
             justify-content: space-between;
@@ -129,7 +128,7 @@ const links = [
             height: 48px;
         }
 
-        /* Let the three links participate directly in the navbar's flex row. */
+        /* Place the links directly into the navbar's flex layout. */
         .navigation-links {
             display: contents;
         }
