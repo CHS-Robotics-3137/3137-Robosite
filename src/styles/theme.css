@@ -1,0 +1,17 @@
+/*
+ * theme.css
+ * Central colors and fonts for the website
+ * It keeps the design consistent and allows for seasonal shifts
+ */
+
+:root {
+    /* Neutral starting palette */
+    --color-background: #f4f4f2;
+    --color-text: #202124;
+    --color-text-muted: #555b65;
+    --color-accent: #b42332;
+
+    /* Use installed fonts for now; no font download is required. */
+    --font-body: Arial, Helvetica, sans-serif;
+    --font-heading: Arial, Helvetica, sans-serif;
+}
