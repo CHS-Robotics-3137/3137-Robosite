@@ -8,7 +8,9 @@
  */
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { Image } from "astro:assets";
+import ImageWindow from "../components/ImageWindow.astro";
 import heroImage from "../assets/images/robots/2026-robot/robo-on-field-1.png";
+import aboutWindowPhoto from "../assets/images/robots/2025-robot/robo-on-field-1.png";
 
 const teamName = "T-Birds";
 const teamNumber = 3137;
@@ -30,25 +32,47 @@ const teamNumber = 3137;
         <!-- A dark overlay behind this content helps the text stay readable. -->
         <div class="hero-content">
             <p class="hero-team-number">FIRST Robotics Competition · Team {teamNumber}</p>
-            <h1 id="hero-title" class="home-title">{teamName} ·<br> Connetquot Robotics</h1>
+            <h1 id="hero-title" class="home-title">
+                {teamName} ·<br>Connetquot Robotics
+            </h1>
         </div>
     </section>
 
     <!-- Keep the remaining homepage content centered and comfortably spaced. -->
     <div class="home-content">
-        <section>
-            <h2>About our team</h2>
+        <!-- Two columns on desktop; heading above text on phones. -->
+        <section class="intro-section" aria-labelledby="about-title">
+            <h2 id="about-title">About our team</h2>
+            <!-- Keep the existing paragraphs together in the wider column. -->
+            <div class="intro-copy">
+                <p>
+                    Connetquot Robotics, Team 3137, is our school's FIRST Robotics
+                    Competition team.
+                </p>
+                <p>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris hendrerit, dui a dapibus imperdiet, lectus ex efficitur odio, non luctus velit justo ac enim. Proin a luctus lectus, ut euismod eros. Donec iaculis volutpat ante, ut fermentum elit porttitor vitae. Aliquam vitae nunc ornare, fringilla purus eget, fringilla ex. In sed lacus condimentum, sodales felis sit amet, sodales turpis. Nam a ullamcorper leo. Nulla congue orci commodo eleifend mattis. Cras sagittis magna lacus, quis feugiat magna hendrerit ac. Phasellus lorem ex, convallis id neque vitae, tristique laoreet enim. Nulla elementum congue nunc vel iaculis. Vivamus suscipit nisl ac semper dignissim. Phasellus imperdiet vulputate metus, non dapibus eros feugiat vel. Quisque lobortis malesuada tempor. Praesent porttitor consequat risus.
+                </p>
+            </div> 
+        </section>
+    </div>
 
-            <p>
-                Connetquot Robotics, Team 3137, is our school's FIRST Robotics
-                Competition team.
-            </p>
-            <p>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris hendrerit, dui a dapibus imperdiet, lectus ex efficitur odio, non luctus velit justo ac enim. Proin a luctus lectus, ut euismod eros. Donec iaculis volutpat ante, ut fermentum elit porttitor vitae. Aliquam vitae nunc ornare, fringilla purus eget, fringilla ex. In sed lacus condimentum, sodales felis sit amet, sodales turpis. Nam a ullamcorper leo. Nulla congue orci commodo eleifend mattis. Cras sagittis magna lacus, quis feugiat magna hendrerit ac. Phasellus lorem ex, convallis id neque vitae, tristique laoreet enim. Nulla elementum congue nunc vel iaculis. Vivamus suscipit nisl ac semper dignissim. Phasellus imperdiet vulputate metus, non dapibus eros feugiat vel. Quisque lobortis malesuada tempor. Praesent porttitor consequat risus.
-            </p>
-            <p>
-                Nam imperdiet vehicula erat. Integer aliquet dignissim lacinia. Suspendisse pretium, libero ut tempor vestibulum, turpis eros dictum nibh, mattis congue metus mauris vel lorem. Suspendisse tempor est non tristique facilisis. Aenean libero odio, lacinia ac metus id, efficitur tempor eros. Nam pulvinar nisl nisi, non pharetra urna fringilla ullamcorper. Fusce sit amet fermentum dolor. Nullam aliquam tellus a purus bibendum, in venenatis neque consequat. Integer at molestie est, ac commodo enim. Ut et ligula id ligula euismod vulputate ac a sapien.
-            </p>
+    <!-- Reusable photo window with this image's preferred crop position. -->
+    <ImageWindow image={aboutWindowPhoto} position="center 60%" />
+
+    <!-- Second solid panel completes the content-image-content sequence. -->
+    <div class="home-content">
+        <section class="intro-section" aria-labelledby="second-section-title">
+            <h2 id="second-section-title">Lorem ipsum</h2>
+
+            <!-- Placeholder copy; replace it when the section's purpose is decided. -->
+            <div class="intro-copy">
+                <p>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pellentesque vitae lacus et feugiat. Integer vel sem ut felis cursus rutrum. Donec in tellus consequat, posuere metus in, condimentum libero. Sed suscipit pharetra turpis. Quisque eu nisl ligula. Pellentesque quis auctor lectus. Maecenas mattis justo sit amet massa consectetur, vel pharetra metus euismod. Proin vitae scelerisque ligula. Quisque dolor ex, ultrices sed consectetur a, pharetra at sapien. Sed venenatis iaculis libero et ultricies.
+                </p>
+                <p>
+                    Praesent in pharetra odio. Nulla velit velit, maximus eu sodales vitae, malesuada eu risus. Morbi eget dolor vitae sapien fringilla rutrum in id enim. Nam condimentum odio risus, ornare porta est malesuada vitae. Phasellus turpis felis, lacinia vel condimentum nec, fringilla eget quam. Integer luctus diam et efficitur semper. Praesent mollis pretium lorem, in consectetur quam condimentum quis. Morbi dapibus neque tellus, nec aliquet lacus vestibulum ac. Ut fringilla nibh eu blandit varius. Curabitur sed venenatis ipsum. Phasellus dignissim interdum odio, sit amet efficitur nisl dignissim vitae. Nam faucibus nunc at mollis lobortis. Sed tempus turpis et sapien posuere, non venenatis arcu pellentesque. Fusce egestas, diam ac sodales imperdiet, arcu neque pellentesque odio, et convallis purus orci consectetur ex.
+                </p>
+            </div>
         </section>
     </div>
 </BaseLayout>
@@ -135,11 +159,45 @@ const teamNumber = 3137;
         margin-bottom: 0;
     }
 
-    /* Center the content area and keep text away from screen edges. */
+    /* Full-width solid panel; the inner section controls readable content width. */
     .home-content {
-        max-width: 1100px;
+        background-color: var(--panel-background);
+    }
+
+    /* Keep the reference-style heading and text columns within a centered area. */
+    .intro-section {
+        box-sizing: border-box;
+        display: grid;
+        grid-template-columns: minmax(0, 0.36fr) minmax(0, 0.58fr);
+        justify-content: space-between;
+        gap: 40px;
+        max-width: 1148px;
         margin-inline: auto;
-        padding: 64px 24px;
+        padding: 96px 24px;
+    }
+
+    /* Give the section heading its own smaller column. */
+    .intro-section h2 {
+        margin: 0;
+        color: var(--panel-heading);
+        font-family: var(--font-heading);
+        font-size: clamp(1.5rem, 3vw, 2.25rem);
+        line-height: 1.2;
+    }
+
+    /* Override ordinary paragraph colors inside the dark content panel. */
+    .intro-copy p {
+        color: var(--panel-text);
+    }
+
+    /* Align the first paragraph with the top of the section heading. */
+    .intro-copy p:first-child {
+        margin-top: 0;
+    }
+
+    /* Avoid extra space after the final paragraph. */
+    .intro-copy p:last-child {
+        margin-bottom: 0;
     }
 
     /* Keep paragraphs readable rather than stretching across the screen. */
@@ -147,16 +205,6 @@ const teamNumber = 3137;
         max-width: 65ch;
         color: var(--color-text-muted);
         font-size: 1.1rem;
-    }
-
-    /* Separate the introduction from the next section. */
-    section {
-        margin-top: 64px;
-    }
-
-    /* The content container already provides space below the banner. */
-    .home-content > section:first-child {
-        margin-top: 0;
     }
 
     /* Darken the text area more on phones without changing desktop styling. */
@@ -168,6 +216,12 @@ const teamNumber = 3137;
                 rgb(0 0 0 / 55%) 45%,
                 rgb(0 0 0 / 90%) 100%
             );
+        }
+        /* Stack the heading and copy when two columns would be too narrow. */
+        .intro-section {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 24px;
+            padding: 64px 24px;
         }
     }
 

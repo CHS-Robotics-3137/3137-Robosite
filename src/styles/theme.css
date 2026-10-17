@@ -32,6 +32,15 @@
      */
     --color-accent: #b42332;
 
+    /* ---------- Homepage content panels ---------- */
+
+    /* Background of the solid sections between full-width image windows. */
+    --panel-background: #171719;
+
+    /* Heading and paragraph colors within those dark sections. */
+    --panel-heading: #fff;
+    --panel-text: #d0d0d4;
+
 
     /* ---------- Shared fonts ---------- */
 

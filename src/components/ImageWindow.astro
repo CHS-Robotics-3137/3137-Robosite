@@ -1,0 +1,78 @@
+---
+/*
+ * ImageWindow.astro
+ * Reusable decorative photo window between homepage content panels.
+ * Optimizes an imported photo as WebP during the static build.
+ * Uses fixed backgrounds on desktop, normal scrolling on touch devices,
+ * and respects reduced-motion preferences.
+ */
+import { getImage } from "astro:assets";
+import type { ImageMetadata } from "astro";
+
+interface Props {
+    // Import the original photo from src/assets in the page using this component.
+    image: ImageMetadata;
+
+    // CSS background position: change this to adjust the photo's crop.
+    position?: string;
+}
+
+// Keep the current crop as the default unless a page supplies another value.
+const { image, position = "center 60%" } = Astro.props;
+
+// Generate the optimized photo URL; no browser JavaScript is needed.
+const optimizedImage = await getImage({
+    src: image,
+    format: "webp",
+});
+---
+
+<!-- Decorative only: meaningful images should have accessible image markup. -->
+<div
+    class="image-window"
+    style={{
+        backgroundImage: `url("${optimizedImage.src}")`,
+        backgroundPosition: position,
+    }}
+    aria-hidden="true"
+></div>
+
+<style>
+    /* Fill the available width and crop without stretching the photograph. */
+    .image-window {
+        position: relative;
+        height: 70vh;
+        height: 70svh;
+        background-repeat: no-repeat;
+        background-size: cover;
+    }
+
+    /* Fixed contrast effect, rather than a seasonal theme color. */
+    .image-window::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            to bottom,
+            rgb(0 0 0 / 10%),
+            rgb(0 0 0 / 40%)
+        );
+        pointer-events: none;
+    }
+
+    /* Desktop: give the stationary background a full-screen scrolling window. */
+    @media (min-width: 601px) and (hover: hover) and (pointer: fine) {
+        .image-window {
+            height: 100vh;
+            height: 100svh;
+            background-attachment: fixed;
+        }
+    }
+
+    /* Keep ordinary scrolling when the visitor requests reduced motion. */
+    @media (prefers-reduced-motion: reduce) {
+        .image-window {
+            background-attachment: scroll;
+        }
+    }
+</style>
