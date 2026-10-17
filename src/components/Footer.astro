@@ -1,0 +1,28 @@
+---
+/**
+ * Footer.astro
+ * Shared footer showing the year the website was last updated.
+ * Update the year manually when maintaining the site—not automatically.
+ */
+const lastUpdatedYear = 2026;
+---
+
+<footer class="site-footer">
+    <p>❀ {lastUpdatedYear} T-Birds Robotics</p>
+</footer>
+
+<style>
+    /* A full-width footer in normal page flow, below the page content. */
+    .site-footer {
+        padding: 28px 24px;
+        background-color: var(--footer-background);
+        color: var(--footer-text);
+        text-align: center;
+    }
+
+    /* Remove default paragraph spacing so the padding controls its height. */
+    .site-footer p {
+        margin: 0;
+        font-size: 0.95rem;
+    }
+</style>

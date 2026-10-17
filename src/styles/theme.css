@@ -41,6 +41,13 @@
     --panel-heading: #fff;
     --panel-text: #d0d0d4;
 
+    /* ---------- Footer appearance ---------- */
+
+    /* Solid background behind the update-year footer on every page. */
+    --footer-background: #000;
+
+    /* Color of the footer's flower symbol, update year, and team name. */
+    --footer-text: #d0d0d4;
 
     /* ---------- Shared fonts ---------- */
 

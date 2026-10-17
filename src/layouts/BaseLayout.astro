@@ -5,6 +5,7 @@
  * Provides page metadata, navigation, and a place for each page's content
  */
 import Navigation from "../components/Navigation.astro";
+import Footer from "../components/Footer.astro";
 import "../styles/theme.css";
 
 // Pages may supply a browser-tab title; otherwise use this default
@@ -45,6 +46,8 @@ const hasHero = Astro.slots.has("hero");
             <!-- Insert the rest of the individual page's content here. -->
             <slot />
         </main>
+        <!-- Show the manually maintained update year on every page. -->
+        <Footer />
     </body>
 </html>
 
