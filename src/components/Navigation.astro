@@ -117,10 +117,25 @@ const links = [
     }
 
     /* Give visible links more room on narrow phones. */
+        /* Use equal visible gaps between the logo and links on narrow screens. */
     @media (max-width: 480px) {
+        .team-navigation {
+            justify-content: space-between;
+            gap: 0;
+        }
+
         .team-logo {
             width: 48px;
             height: 48px;
+        }
+
+        /* Let the three links participate directly in the navbar's flex row. */
+        .navigation-links {
+            display: contents;
+        }
+
+        .navigation-links a {
+            flex: 0 0 auto;
         }
     }
 </style>
