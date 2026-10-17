@@ -52,4 +52,15 @@ const { title = "Our Robotics Team" } = Astro.props;
     :global(body:has(.home-hero)) .sticky-navigation {
         margin-top: calc(-1 * var(--nav-height));
     }
+    /* Darken the text area more on phones without changing desktop styling. */
+    @media (max-width: 600px) {
+        .home-hero::before {
+            background: linear-gradient(
+                to bottom,
+                rgb(0 0 0 / 15%) 0%,
+                rgb(0 0 0 / 55%) 45%,
+                rgb(0 0 0 / 90%) 100%
+            );
+        }
+    }
 </style>
