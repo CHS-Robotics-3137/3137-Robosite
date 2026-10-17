@@ -1,0 +1,83 @@
+---
+/*
+ * ContentPanel.astro
+ * A reusable dark content panel with a heading beside its content.
+ * Stacks the heading above the content on smaller screens.
+ */
+
+interface Props {
+    heading: string;
+    headingId: string;
+}
+
+const { heading, headingId } = Astro.props;
+---
+
+<section class="content-panel" aria-labelledby={headingId}>
+    <div class="panel-inner">
+        <h2 id={headingId}>{heading}</h2>
+
+        <!-- Accept custom content without rebuilding the panel's layout. -->
+        <div class="panel-copy">
+            <slot />
+        </div>
+    </div>
+</section>
+
+<style>
+    /* Full-width dark surface, using the shared seasonal theme colors. */
+    .content-panel {
+        background-color: var(--panel-background);
+    }
+
+    /* Center the content and give the heading its own narrower column. */
+    .panel-inner {
+        box-sizing: border-box;
+        display: grid;
+        grid-template-columns: minmax(0, 0.36fr) minmax(0, 0.58fr);
+        justify-content: space-between;
+        gap: 40px;
+        max-width: 1148px;
+        margin-inline: auto;
+        padding: 96px 24px;
+    }
+
+    /* Keep every panel heading consistent without styling other headings. */
+    h2 {
+        margin: 0;
+        color: var(--panel-heading);
+        font-family: var(--font-heading);
+        font-size: clamp(1.5rem, 3vw, 2.25rem);
+        line-height: 1.2;
+    }
+
+    /*
+     * Slotted paragraphs are written outside this component.
+     * :global(p) reaches them, while .panel-copy limits these rules
+     * to content inside this panel.
+     */
+    .panel-copy :global(p) {
+        max-width: 65ch;
+        color: var(--panel-text);
+        font-size: 1.1rem;
+    }
+
+    /* Align the opening paragraph with the heading. */
+    .panel-copy :global(p:first-child) {
+        margin-top: 0;
+    }
+
+    /* Prevent an extra gap beneath the final paragraph. */
+    .panel-copy :global(p:last-child) {
+        margin-bottom: 0;
+    }
+
+    /* Stack the heading and content on phones. */
+    @media (max-width: 600px) {
+        .panel-inner {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 24px;
+            padding: 64px 24px;
+        }
+    }
+</style>
