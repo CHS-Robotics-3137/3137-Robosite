@@ -4,9 +4,9 @@
  * The website's homepage
  * To test run: npm run dev
  * To build run: npm run build
+ * reminder: pwa
  */
 import BaseLayout from "../layouts/BaseLayout.astro";
-import "../styles/theme.css";
 import { Image } from "astro:assets";
 import heroImage from "../assets/images/robots/2026-robot/robo-on-field-1.png";
 
@@ -157,7 +157,7 @@ const teamNumber = 3137;
         width: 100%;
         max-width: 1148px;
         margin-inline: auto;
-        padding: 64px 24px 128px;
+        padding: 64px 24px calc(64px + var(--nav-height));
     }
 
     /* Override the normal paragraph styling for text over the photo. */

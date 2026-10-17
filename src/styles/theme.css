@@ -14,4 +14,10 @@
     /* Use installed fonts for now; no font download is required. */
     --font-body: Arial, Helvetica, sans-serif;
     --font-heading: Arial, Helvetica, sans-serif;
+
+    /* Shared navigation styling and its overlap with the homepage hero. */
+    --nav-background: #000;
+    --nav-text: #fff;
+    --nav-height: 88px;
+    --nav-font-size: clamp(1rem, 2vw, 1.3rem);
 }

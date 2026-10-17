@@ -5,6 +5,7 @@
  * Provides page metadata, navigation, and a place for each page's content
  */
 import Navigation from "../components/Navigation.astro";
+import "../styles/theme.css";
 
 // Pages may supply a browser-tab title; otherwise use this default
 const { title = "Our Robotics Team" } = Astro.props;
@@ -49,6 +50,6 @@ const { title = "Our Robotics Team" } = Astro.props;
     }
     /* Overlap the full-height homepage photo without affecting other pages. */
     :global(body:has(.home-hero)) .sticky-navigation {
-        margin-top: -64px;
+        margin-top: calc(-1 * var(--nav-height));
     }
 </style>
