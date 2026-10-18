@@ -50,7 +50,10 @@ const homeSections = (await parseHomepage(homeContent)).map((section) => {
 });
 ---
 
-<BaseLayout title={homeSettings.pageTitle}>
+<BaseLayout
+    title={homeSettings.pageTitle}
+    description={homeSettings.pageDescription}
+>
     <!-- Full-width opening photo with the team name layered over it. -->
     <section slot="hero" class="home-hero" aria-labelledby="hero-title">
         <!-- Optimizes the hero photo while preserving our CSS crop and position. -->

@@ -7,6 +7,7 @@ import { parse } from "yaml";
 
 interface HomepageSettings {
     pageTitle: string;
+    pageDescription: string;
     heroHeading: string;
     heroSubtitle: string;
     heroImage: string;
@@ -64,6 +65,7 @@ export function readHomepage(markdown: string): {
     return {
         settings: {
             pageTitle: requiredText("pageTitle"),
+            pageDescription: requiredText("pageDescription"),
             heroHeading: requiredText("heroHeading"),
             heroSubtitle: requiredText("heroSubtitle"),
             heroImage: requiredText("heroImage"),

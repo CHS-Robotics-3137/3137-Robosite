@@ -1,6 +1,7 @@
 ---
 # Homepage settings. Photo paths start inside src/assets/images.
 pageTitle: "T-Birds - Home"
+pageDescription: "Meet T-Birds Robotics, Connetquot's FIRST Robotics Competition Team 3137, and explore our team and robots."
 heroHeading: "T-Birds · Connetquot Robotics"
 heroSubtitle: "FIRST Robotics Competition · Team 3137"
 heroImage: "robots/2026-robot/robo-on-field-1.png"

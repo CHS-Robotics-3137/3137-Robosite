@@ -8,8 +8,13 @@ import Navigation from "../components/Navigation.astro";
 import Footer from "../components/Footer.astro";
 import "../styles/theme.css";
 
-// Pages may supply a browser-tab title; otherwise use this default
-const { title = "Our Robotics Team" } = Astro.props;
+// Pages can supply their own title and optional search-result summary.
+interface Props {
+    title?: string;
+    description?: string;
+}
+
+const { title = "Our Robotics Team", description } = Astro.props;
 // A supplied hero slot means navigation should overlap its bottom edge.
 const hasHero = Astro.slots.has("hero");
 ---
@@ -21,6 +26,8 @@ const hasHero = Astro.slots.has("hero");
         <!-- Allow the layout to adapt to the device's screen width -->
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{title}</title>
+        <!-- Search engines may use this summary in results. -->
+        {description && <meta name="description" content={description} />}
         <!-- Use the favicon -->
         <link
             rel="icon"
