@@ -12,12 +12,12 @@ import type { ImageMetadata } from "astro";
 import ImageWindow from "../components/ImageWindow.astro";
 import ContentPanel from "../components/ContentPanel.astro";
 import { parseHomepage } from "../lib/parseHomepage";
+import { readHomepage } from "../lib/readHomepage";
 import homeMarkdown from "../content/home.md?raw";
 
-import heroImage from "../assets/images/robots/2026-robot/robo-on-field-1.png";
-
-const teamName = "T-Birds";
-const teamNumber = 3137;
+// Read editable hero settings separately from the Markdown section content.
+const { settings: homeSettings, content: homeContent } =
+    readHomepage(homeMarkdown);
 
 // Make local photos available to Markdown without individual page imports.
 // These imports provide image metadata; ImageWindow performs WebP optimization.
@@ -25,9 +25,17 @@ const photos = import.meta.glob<ImageMetadata>(
     "/src/assets/images/**/*.{png,jpg,jpeg,webp,avif}",
     { eager: true, import: "default" },
 );
+// Resolve the hero photo through the same local image library as photo windows.
+const heroImage = photos[`/src/assets/images/${homeSettings.heroImage}`];
+
+if (!heroImage) {
+    throw new Error(
+        `home.md: Hero photo "${homeSettings.heroImage}" was not found in src/assets/images. Check its path and capitalization.`,
+    );
+}
 
 // Read sections in document order and resolve decorative photo references.
-const homeSections = (await parseHomepage(homeMarkdown)).map((section) => {
+const homeSections = (await parseHomepage(homeContent)).map((section) => {
     if (section.type === "panel") return section;
 
     const image = photos[`/src/assets/images/${section.src}`];
@@ -42,24 +50,26 @@ const homeSections = (await parseHomepage(homeMarkdown)).map((section) => {
 });
 ---
 
-<BaseLayout title={`${teamName} - Home`}>
+<BaseLayout title={homeSettings.pageTitle}>
     <!-- Full-width opening photo with the team name layered over it. -->
     <section slot="hero" class="home-hero" aria-labelledby="hero-title">
         <!-- Optimizes the hero photo while preserving our CSS crop and position. -->
         <Image
             class="hero-image"
             src={heroImage}
-            alt="Our team's robot on the competition field"
+            alt={homeSettings.heroAlt}
+            style={{ objectPosition: homeSettings.heroPosition }}
             format="webp"
             loading="eager"
             fetchpriority="high"
         />
 
         <!-- A dark overlay behind this content helps the text stay readable. -->
+        <!-- Editable hero words come from the settings in home.md. -->
         <div class="hero-content">
-            <p class="hero-team-number">FIRST Robotics Competition · Team {teamNumber}</p>
+            <p class="hero-team-number">{homeSettings.heroSubtitle}</p>
             <h1 id="hero-title" class="home-title">
-                {teamName} ·<br>Connetquot Robotics
+                {homeSettings.heroHeading}
             </h1>
         </div>
     </section>
@@ -116,9 +126,6 @@ const homeSections = (await parseHomepage(homeMarkdown)).map((section) => {
         width: 100%;
         height: 100%;
         object-fit: cover;
-
-        /* Change the second percentage to move the crop up or down. */
-        object-position: center 38%;
     }
 
     /* Darken the lower portion so white text remains readable. */

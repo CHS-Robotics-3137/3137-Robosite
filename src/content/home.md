@@ -1,8 +1,19 @@
+---
+# Homepage settings. Photo paths start inside src/assets/images.
+pageTitle: "T-Birds - Home"
+heroHeading: "T-Birds · Connetquot Robotics"
+heroSubtitle: "FIRST Robotics Competition · Team 3137"
+heroImage: "robots/2026-robot/robo-on-field-1.png"
+heroAlt: "Our team's robot on the competition field"
+heroPosition: "center 38%"
+---
+
 <!--
 home.md — Homepage editing guide
-
 Sections appear on the website in the same order as this document.
-The hero, navigation, and footer are managed separately.
+Edit the hero using the settings at the very top of this file.
+Keep those settings between the opening and closing --- lines.
+Navigation and footer content are managed separately.
 
 TEXT PANELS
 - Start each panel with a ## heading.
