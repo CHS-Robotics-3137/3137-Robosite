@@ -9,6 +9,11 @@
         "preview": "astro preview"
     },
     "dependencies": {
-        "astro": "^7.4.0"
+        "astro": "^7.4.0",
+        "rehype-stringify": "^10.0.1",
+        "remark-directive": "^4.0.0",
+        "remark-parse": "^11.0.0",
+        "remark-rehype": "^11.1.2",
+        "unified": "^11.0.5"
     }
 }

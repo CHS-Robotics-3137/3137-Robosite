@@ -8,15 +8,38 @@
  */
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
 import ImageWindow from "../components/ImageWindow.astro";
 import ContentPanel from "../components/ContentPanel.astro";
+import { parseHomepage } from "../lib/parseHomepage";
+import homeMarkdown from "../content/home.md?raw";
 
 import heroImage from "../assets/images/robots/2026-robot/robo-on-field-1.png";
-import aboutWindowPhoto from "../assets/images/robots/2025-robot/robo-on-field-1.png";
-import pitWindowPhoto from "../assets/images/robots/2024-robot/robot-in-pit.png";
 
 const teamName = "T-Birds";
 const teamNumber = 3137;
+
+// Make local photos available to Markdown without individual page imports.
+// These imports provide image metadata; ImageWindow performs WebP optimization.
+const photos = import.meta.glob<ImageMetadata>(
+    "/src/assets/images/**/*.{png,jpg,jpeg,webp,avif}",
+    { eager: true, import: "default" },
+);
+
+// Read sections in document order and resolve decorative photo references.
+const homeSections = (await parseHomepage(homeMarkdown)).map((section) => {
+    if (section.type === "panel") return section;
+
+    const image = photos[`/src/assets/images/${section.src}`];
+
+    if (!image) {
+        throw new Error(
+            `home.md: Photo "${section.src}" was not found in src/assets/images. Check its path and capitalization.`,
+        );
+    }
+
+    return { ...section, image };
+});
 ---
 
 <BaseLayout title={`${teamName} - Home`}>
@@ -41,42 +64,25 @@ const teamNumber = 3137;
         </div>
     </section>
 
-    <!-- Reusable panel; its component handles layout and mobile spacing. -->
-    <ContentPanel heading="About our team" headingId="about-title">
-        <p>
-            Connetquot Robotics, Team 3137, is our school's FIRST Robotics
-            Competition team.
-        </p>
-        <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris hendrerit, dui a dapibus imperdiet, lectus ex efficitur odio, non luctus velit justo ac enim. Proin a luctus lectus, ut euismod eros. Donec iaculis volutpat ante, ut fermentum elit porttitor vitae. Aliquam vitae nunc ornare, fringilla purus eget, fringilla ex. In sed lacus condimentum, sodales felis sit amet, sodales turpis. Nam a ullamcorper leo. Nulla congue orci commodo eleifend mattis. Cras sagittis magna lacus, quis feugiat magna hendrerit ac. Phasellus lorem ex, convallis id neque vitae, tristique laoreet enim. Nulla elementum congue nunc vel iaculis. Vivamus suscipit nisl ac semper dignissim. Phasellus imperdiet vulputate metus, non dapibus eros feugiat vel. Quisque lobortis malesuada tempor. Praesent porttitor consequat risus.
-        </p>
-    </ContentPanel>
-
-    <!-- Reusable photo window with this image's preferred crop position. -->
-    <ImageWindow image={aboutWindowPhoto} position="center 60%" />
-
-    <!-- Placeholder copy; replace it when the section's purpose is decided. -->
-    <ContentPanel heading="Lorem ipsum" headingId="second-section-title">
-        <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pellentesque vitae lacus et feugiat. Integer vel sem ut felis cursus rutrum. Donec in tellus consequat, posuere metus in, condimentum libero. Sed suscipit pharetra turpis. Quisque eu nisl ligula. Pellentesque quis auctor lectus. Maecenas mattis justo sit amet massa consectetur, vel pharetra metus euismod. Proin vitae scelerisque ligula. Quisque dolor ex, ultrices sed consectetur a, pharetra at sapien. Sed venenatis iaculis libero et ultricies.
-        </p>
-        <p>
-            Praesent in pharetra odio. Nulla velit velit, maximus eu sodales vitae, malesuada eu risus. Morbi eget dolor vitae sapien fringilla rutrum in id enim. Nam condimentum odio risus, ornare porta est malesuada vitae. Phasellus turpis felis, lacinia vel condimentum nec, fringilla eget quam. Integer luctus diam et efficitur semper. Praesent mollis pretium lorem, in consectetur quam condimentum quis. Morbi dapibus neque tellus, nec aliquet lacus vestibulum ac. Ut fringilla nibh eu blandit varius. Curabitur sed venenatis ipsum. Phasellus dignissim interdum odio, sit amet efficitur nisl dignissim vitae. Nam faucibus nunc at mollis lobortis. Sed tempus turpis et sapien posuere, non venenatis arcu pellentesque. Fusce egestas, diam ac sodales imperdiet, arcu neque pellentesque odio, et convallis purus orci consectetur ex.
-        </p>
-    </ContentPanel>
-
-    <!-- Another photo window using the same desktop and phone behavior. -->
-    <ImageWindow image={pitWindowPhoto} position="center 10%" />
-
-    <!-- Additional placeholder panel; content can change independently. -->
-    <ContentPanel heading="Lorem ipsum dolor" headingId="third-section-title">
-        <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pellentesque vitae lacus et feugiat. Integer vel sem ut felis cursus rutrum. Donec in tellus consequat, posuere metus in, condimentum libero. Sed suscipit pharetra turpis. Quisque eu nisl ligula. Pellentesque quis auctor lectus. Maecenas mattis justo sit amet massa consectetur, vel pharetra metus euismod. Proin vitae scelerisque ligula. Quisque dolor ex, ultrices sed consectetur a, pharetra at sapien. Sed venenatis iaculis libero et ultricies.
-        </p>
-        <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pellentesque vitae lacus et feugiat. Integer vel sem ut felis cursus rutrum. Donec in tellus consequat, posuere metus in, condimentum libero. Sed suscipit pharetra turpis. Quisque eu nisl ligula. Pellentesque quis auctor lectus. Maecenas mattis justo sit amet massa consectetur, vel pharetra metus euismod. Proin vitae scelerisque ligula. Quisque dolor ex, ultrices sed consectetur a, pharetra at sapien. Sed venenatis iaculis libero et ultricies.
-        </p>
-    </ContentPanel>
+    <!-- One Markdown document controls all sections below the hero. -->
+    {
+        homeSections.map((section, index) =>
+            section.type === "panel" ? (
+                <ContentPanel
+                    heading={section.heading}
+                    headingId={`home-panel-${index + 1}`}
+                >
+                    {/* HTML is generated from our local Markdown at build time. */}
+                    <Fragment set:html={section.html} />
+                </ContentPanel>
+            ) : (
+                <ImageWindow
+                    image={section.image}
+                    position={section.position}
+                />
+            ),
+        )
+    }
 
 </BaseLayout>
 
