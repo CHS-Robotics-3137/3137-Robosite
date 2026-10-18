@@ -10,44 +10,9 @@ heroPosition: "center 38%"
 ---
 
 <!--
-home.md — Homepage editing guide
-Sections appear on the website in the same order as this document.
-Edit the hero using the settings at the very top of this file.
-Keep those settings between the opening and closing --- lines.
-Navigation and footer content are managed separately.
-
-TEXT PANELS
-- Start each panel with a ## heading.
-- Write its content below that heading.
-- Use ### through ###### for smaller headings inside the panel.
-- Separate paragraphs with a blank line.
-- Move or delete an entire panel to move or remove it.
-
-FORMATTING
-- **bold** and *italic*
-- [link text](https://example.com)
-- Lines starting with "- " create bullet lists.
-- Lines starting with "1. " create numbered lists.
-- Lines starting with "> " create quotations.
-- A standalone --- creates a dividing line INSIDE a panel.
-
-PHOTO WINDOWS
-Use a standalone instruction like this, with blank lines around it:
-
-::photo{src="robots/2025-robot/robo-on-field-1.png" position="center 60%"}
-
-- Photo paths start inside src/assets/images.
-- Upload new photos there, then reference their exact path and capitalization.
-- These windows are decorative, not a place for essential information.
-- The position setting adjusts the crop; it does not resize the window.
-- After a photo, start a new ## heading before adding more text.
-- Ordinary Markdown images are NOT photo windows and do not currently
-  receive the photo-window image optimization.
-
-PUBLISHING
-- Save and preview locally.
-- Run npm run build to check for build errors.
-- Commit and push to publish through GitHub Actions.
+home.md
+Editable homepage settings and content.
+See README.md in the project root for editing and publishing instructions.
 -->
 
 ## About our team
