@@ -26,9 +26,8 @@
     --color-text-muted: #555b65;
 
     /*
-     * Reserved accent color for future buttons, highlights, or decorative details.
-     * Not currently referenced by the files you supplied, so changing it
-     * will not yet produce a visible difference.
+     * Accent color used by the Robots page's introductory label,
+     * timeline line, and season markers.
      */
     --color-accent: #b42332;
 

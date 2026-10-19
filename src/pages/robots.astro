@@ -1,32 +1,286 @@
 ---
 /*
  * robots.astro
- * Displays the team's robots by season
+ * Builds the robot timeline from one editable Markdown archive.
+ * Resolves local photos and optimizes them through Astro.
+ * Season details currently expand inline without client-side JavaScript.
  */
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+import { parseRobots } from "../lib/parseRobots";
+import robotsMarkdown from "../content/robots.md?raw";
 
-const robots = [
-    {
-        name: "Example Robot",
-        season: 2026,
-        description: "Replace this with information about your robot."
-    },
-    {
-        name: "Another Robot",
-        season: 2025,
-        description: "Replace this with a previous season's robot."
+// Use the same local image library and path convention as the homepage.
+const photos = import.meta.glob<ImageMetadata>(
+    "/src/assets/images/**/*.{png,jpg,jpeg,webp,avif}",
+    { eager: true, import: "default" },
+);
+
+// Resolve photos at build time so incorrect paths produce useful errors.
+const seasons = (await parseRobots(robotsMarkdown)).map((season) => {
+    const photo = photos[`/src/assets/images/${season.image}`];
+
+    if (!photo) {
+        throw new Error(
+            `robots.md: Photo "${season.image}" was not found in src/assets/images. Check its path and capitalization.`,
+        );
     }
-];
+
+    return { ...season, photo };
+});
 ---
 
-<BaseLayout title="Our Robots">
-    <h1>Our Robots</h1>
+<BaseLayout
+    title="Our Robots"
+    description="Explore the robots, competitions, achievements, and history of Connetquot T-Birds Robotics, FIRST Robotics Competition Team 3137."
+>
+    <div class="robots-page">
+        <header class="archive-intro">
+            <p class="archive-eyebrow">The T-Birds 3137 archive</p>
+            <h1>Our Robots</h1>
+            <p>
+                Integer vitae magna cursus, vulputate metus nec, maximus urna. Nunc eu imperdiet turpis. Cras quis consequat mi. Morbi ac metus eu lectus ultrices semper. Aliquam pellentesque arcu sed feugiat gravida. Nulla facilisi. Proin erat diam, dignissim vitae justo nec, tempor congue sem. Nam lobortis ex et lacus imperdiet placerat. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Proin scelerisque nibh tristique tortor venenatis placerat a id sem. Duis euismod sagittis arcu, ut auctor enim tincidunt sed.
+            </p>
+        </header>
 
-    <!-- Generate one self-contained article for each robot in the array -->
-    {robots.map((robot) => (
-        <article>
-            <h2>{robot.name} — {robot.season}</h2>
-            <p>{robot.description}</p>
-        </article>
-    ))}
+        <!-- An ordered list preserves the archive's Markdown document order. -->
+        <ol class="robot-timeline" aria-label="Robots by season">
+            {seasons.map((season, index) => (
+                <li class="timeline-entry">
+                    <span class="timeline-year" aria-hidden="true">
+                        {season.year}
+                    </span>
+
+                    <article
+                        id={season.id}
+                        class="robot-card"
+                        aria-labelledby={`${season.id}-heading`}
+                    >
+                        <!-- Responsive WebP photos avoid serving full originals. -->
+                        <Image
+                            class="robot-photo"
+                            src={season.photo}
+                            alt={`Team 3137 robot: ${season.heading}`}
+                            widths={[320, 520, 760]}
+                            sizes="(max-width: 700px) calc(100vw - 72px), (max-width: 1148px) 40vw, 430px"
+                            format="webp"
+                            loading={index === 0 ? "eager" : "lazy"}
+                            style={{ objectPosition: season.position }}
+                        />
+
+                        <div class="robot-content">
+                            <p class="robot-game">{season.game}</p>
+                            <h2 id={`${season.id}-heading`}>
+                                {season.heading}
+                            </h2>
+
+                            <!-- Temporary inline details; larger view comes later. -->
+                            <details>
+                                <summary>Explore this season</summary>
+
+                                <!-- Only our build-time Markdown HTML is inserted. -->
+                                <div
+                                    class="robot-details"
+                                    set:html={season.html}
+                                />
+                            </details>
+                        </div>
+                    </article>
+                </li>
+            ))}
+        </ol>
+    </div>
 </BaseLayout>
+
+<style>
+    /*
+     * Robots-page layout only.
+     * Shared colors and fonts come from theme.css.
+     * This container belongs to this page, not BaseLayout.
+     */
+
+    /* Give this archive its own comfortable reading width and outer spacing. */
+    .robots-page {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 1148px;
+        margin-inline: auto;
+        padding: 64px 24px 80px;
+    }
+
+    .archive-intro {
+        max-width: 720px;
+        margin-bottom: 48px;
+    }
+
+    .archive-eyebrow,
+    .robot-game {
+        font-size: 0.85rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+
+    .archive-eyebrow {
+        color: var(--color-accent);
+    }
+
+    .archive-intro h1 {
+        margin: 12px 0 20px;
+        font-family: var(--font-heading);
+        font-size: clamp(2.5rem, 6vw, 4.5rem);
+        line-height: 1.05;
+        letter-spacing: -0.04em;
+    }
+
+    .archive-intro > p:last-child {
+        color: var(--color-text-muted);
+        line-height: 1.7;
+    }
+
+    /* The left border forms one continuous line through every season. */
+    .robot-timeline {
+        margin: 0;
+        padding: 0 0 0 28px;
+        border-left: 2px solid var(--color-accent);
+        list-style: none;
+    }
+
+    .timeline-entry {
+        position: relative;
+        padding-bottom: 40px;
+    }
+
+    .timeline-entry:last-child {
+        padding-bottom: 0;
+    }
+
+    /* Place a red marker directly over the timeline line. */
+    .timeline-entry::before {
+        content: "";
+        position: absolute;
+        top: 6px;
+        left: -35px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--color-accent);
+    }
+
+    .timeline-year {
+        display: block;
+        margin-bottom: 14px;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    /* Photo and text share a card on desktop, then stack on phones. */
+    .robot-card {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        overflow: hidden;
+        border-radius: 12px;
+        background: var(--panel-background);
+        color: var(--panel-text);
+        scroll-margin-top: calc(var(--nav-height) + 24px);
+    }
+
+    .robot-photo {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+    }
+
+    .robot-content {
+        min-width: 0;
+        padding: clamp(24px, 3vw, 36px);
+    }
+
+    .robot-game {
+        margin: 0 0 12px;
+        color: var(--panel-text);
+    }
+
+    .robot-content h2 {
+        margin: 0 0 24px;
+        color: var(--panel-heading);
+        font-family: var(--font-heading);
+        font-size: clamp(1.5rem, 3vw, 2rem);
+        line-height: 1.2;
+        overflow-wrap: anywhere;
+    }
+
+    /* Keep the native disclosure marker and provide an obvious focus state. */
+    summary {
+        width: fit-content;
+        padding-block: 8px;
+        color: var(--panel-heading);
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    summary:focus-visible {
+        outline: 2px solid var(--panel-heading);
+        outline-offset: 5px;
+    }
+
+    /* Generated Markdown needs :global() to receive scoped page styles. */
+    .robot-details {
+        padding-top: 12px;
+        line-height: 1.7;
+        overflow-wrap: anywhere;
+    }
+
+    .robot-details :global(h3) {
+        margin: 28px 0 12px;
+        color: var(--panel-heading);
+        font-size: 1.15rem;
+        line-height: 1.3;
+    }
+
+    .robot-details :global(p),
+    .robot-details :global(ul) {
+        margin-block: 0 16px;
+    }
+
+    .robot-details :global(ul) {
+        padding-left: 22px;
+    }
+
+    .robot-details :global(li + li) {
+        margin-top: 8px;
+    }
+
+    .robot-details :global(a) {
+        color: var(--panel-heading);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+
+    .robot-details :global(a:focus-visible) {
+        outline: 2px solid var(--panel-heading);
+        outline-offset: 3px;
+    }
+
+    /* Smaller gutters leave more room for the portrait photos and text. */
+    @media (max-width: 700px) {
+        .robots-page {
+            padding: 40px 20px 56px;
+        }
+
+        .robot-timeline {
+            padding-left: 22px;
+        }
+
+        .timeline-entry::before {
+            left: -29px;
+        }
+
+        .robot-card {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+</style>
