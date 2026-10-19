@@ -181,16 +181,17 @@ export async function parseRobots(
                 );
             }
 
-            // Images must use project asset paths, not external URLs.
+            // Robot photos belong to this season's YEAR/robot/ asset folder.
+            // Reject backslashes and empty or relative-navigation segments.
             if (
-                !image.startsWith("robots/") ||
+                !image.startsWith(`${yearText}/robot/`) ||
                 image.includes("\\") ||
                 image.split("/").some(
                     (part) => part === ".." || part === "." || part === "",
                 )
             ) {
                 throw new Error(
-                    `robots.md: "${current.heading}" needs an image path like robots/2026-robot/photo.png.`,
+                    `robots.md: "${current.heading}" needs an image path like ${yearText}/robot/photo.png.`,
                 );
             }
 
