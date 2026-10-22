@@ -1,14 +1,22 @@
 /*
  * theme.css
- * Central design settings shared by pages through BaseLayout.astro.
+ * Central design presets shared across every page via BaseLayout.astro.
  *
- * Change values here to adjust the shared palette, fonts, or navbar.
- * A variable affects only the CSS rules that reference it.
+ * HOW THEME SWITCHING WORKS:
+ * 1. ":root" defines the normal year-round Team 3137 theme ("default") and
+ *    acts as the automatic fallback if a preset omits any variable.
+ * 2. Named seasonal presets live below as :root[data-theme="name"] { ... }.
+ * 3. To switch the active theme across the whole site, change the single
+ *    `activeTheme` constant near the top of `src/layouts/BaseLayout.astro`
+ *    (for example: "default" or "halloween").
  *
- * Fixed hero colors and darkening gradients remain in index.astro.
- * Image colors, including the animated logo, are not controlled here.
+ * Fixed hero photo overlays remain local in index.astro so photos stay legible.
+ * Image colors, including the animated logo, are not recolored here.
  */
 
+/* ==========================================================================
+   1. DEFAULT THEME ("default") — Year-round Team 3137 palette & fonts
+   ========================================================================== */
 :root {
     /* ---------- Shared page colors ---------- */
 
@@ -18,83 +26,77 @@
     /* Default text color inherited from the body, including ordinary headings. */
     --color-text: #202124;
 
-    /*
-     * Secondary text color.
-     * Currently used by homepage paragraphs; the hero team-number line
-     * overrides this with white for contrast over the photo.
-     */
+    /* Secondary text color for captions, counts, and supporting copy. */
     --color-text-muted: #555b65;
 
-    /*
-     * Accent color used by the Robots page's introductory label,
-     * timeline line, and season markers.
-     */
+    /* Accent color used by links, active states, timeline line, and markers. */
     --color-accent: #b42332;
 
-    /* ---------- Homepage content panels ---------- */
+    /* ---------- Content & robot card panels ---------- */
 
-    /* Background of the solid sections between full-width image windows. */
+    /* Solid dark surface behind homepage panels and robot season cards. */
     --panel-background: #171719;
-
-    /* Heading and paragraph colors within those dark sections. */
-    --panel-heading: #fff;
+    --panel-heading: #ffffff;
     --panel-text: #d0d0d4;
+
+    /* ---------- Interactive controls (search bar, dropdowns, popups) ---------- */
+
+    /* Main surface behind text inputs, dropdown selects, and popups. */
+    --control-background: #ffffff;
+
+    /* Subtle secondary surface for scope tabs, hover highlights, and badges. */
+    --control-surface-muted: #eceef2;
+
+    /* Accessible 3:1+ border around inputs, dropdowns, and buttons. */
+    --control-border: #7a808a;
 
     /* ---------- Footer appearance ---------- */
 
-    /* Solid background behind the update-year footer on every page. */
-    --footer-background: #000;
-
-    /* Color of the footer's flower symbol, update year, and team name. */
+    --footer-background: #000000;
     --footer-text: #d0d0d4;
 
-    /* ---------- Shared fonts ---------- */
+    /* ---------- Shared fonts (installed system fonts — zero downloads) ---------- */
 
-    /*
-     * Default page font, also explicitly used by the navbar.
-     * These installed-font fallbacks require no external font download.
-     */
     --font-body: Arial, Helvetica, sans-serif;
-
-    /*
-     * Font used explicitly by the large homepage hero heading.
-     * Other headings currently inherit the body font unless styled separately.
-     */
     --font-heading: Arial, Helvetica, sans-serif;
 
+    /* ---------- Navigation appearance & sizing ---------- */
+
+    --nav-background: #000000;
+    --nav-text: #ffffff;
+    --nav-height: 88px;
+    --nav-font-size: clamp(1rem, 2vw, 1.3rem);
+}
+
+/* ==========================================================================
+   2. HALLOWEEN THEME ("halloween") — Midnight plum, pumpkin glow & serifs
+   ========================================================================== */
+:root[data-theme="halloween"] {
+    /* ---------- Shared page colors ---------- */
+    --color-background: #140f1d;
+    --color-text: #f7efe2;
+    --color-text-muted: #cbbdd8;
+    --color-accent: #ff9233;
+
+    /* ---------- Content & robot card panels ---------- */
+    --panel-background: #241834;
+    --panel-heading: #ffb347;
+    --panel-text: #efe6f7;
+
+    /* ---------- Interactive controls ---------- */
+    --control-background: #221730;
+    --control-surface-muted: #312246;
+    --control-border: #8b74a8;
+
+    /* ---------- Footer appearance ---------- */
+    --footer-background: #0b0711;
+    --footer-text: #ffb347;
+
+    /* ---------- Shared fonts ---------- */
+    --font-body: "Trebuchet MS", "Gill Sans", Verdana, sans-serif;
+    --font-heading: Georgia, "Palatino Linotype", "Book Antiqua", Palatino, serif;
 
     /* ---------- Navigation appearance ---------- */
-
-    /* Solid background behind the navbar logo and page links. */
-    --nav-background: #000;
-
-    /*
-     * Navbar link text and keyboard-focus outline color.
-     * Does not recolor the logo image.
-     */
-    --nav-text: #fff;
-
-
-    /* ---------- Navigation sizing ---------- */
-
-    /*
-     * Navbar height on desktop and mobile.
-     * Also controls:
-     * - How far BaseLayout overlaps the navbar onto a supplied hero.
-     * - Extra bottom padding that keeps homepage hero text above the navbar.
-     *
-     * Logo dimensions are currently set separately in Navigation.astro.
-     */
-    --nav-height: 88px;
-
-    /*
-     * Page-link text size inside the navbar.
-     * clamp(minimum, preferred, maximum):
-     * - Never smaller than 1rem.
-     * - Scales with viewport width using 2vw.
-     * - Never larger than 1.3rem.
-     *
-     * rem follows the root font size; vw follows the viewport width.
-     */
-    --nav-font-size: clamp(1rem, 2vw, 1.3rem);
+    --nav-background: #0b0711;
+    --nav-text: #ffb347;
 }
