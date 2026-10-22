@@ -78,6 +78,56 @@ const groups = [...groupedPhotos.entries()]
         id: `gallery-year-${year ?? "unknown"}`,
         items,
     }));
+
+// Extract plain caption text so full-text search indexes clean prose without HTML tags.
+function stripHtml(html: string): string {
+    return html
+        .replace(/<[^>]+>/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;|&apos;/g, "'")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+// Build option lists dynamically so future gallery.md tags appear automatically.
+const initialSubjectCounts = new Map<string, number>();
+const initialActivityCounts = new Map<string, number>();
+
+for (const photo of photos) {
+    for (const subject of photo.subjects) {
+        initialSubjectCounts.set(
+            subject,
+            (initialSubjectCounts.get(subject) ?? 0) + 1,
+        );
+    }
+    if (photo.activity) {
+        initialActivityCounts.set(
+            photo.activity,
+            (initialActivityCounts.get(photo.activity) ?? 0) + 1,
+        );
+    }
+}
+
+const subjectOptions = [...initialSubjectCounts.entries()].sort(
+    (a, b) => b[1] - a[1],
+);
+const activityOptions = [...initialActivityCounts.entries()].sort(
+    (a, b) => b[1] - a[1],
+);
+
+const archiveRecords = photos.map((entry) => ({
+    id: entry.id,
+    yearId: `gallery-year-${entry.year ?? "unknown"}`,
+    title: entry.title,
+    caption: stripHtml(entry.html),
+    credit: entry.credit,
+    year: entry.year === null ? "unknown" : String(entry.year),
+    subjects: entry.subjects,
+    activity: entry.activity,
+}));
 ---
 
 <BaseLayout
@@ -91,6 +141,107 @@ const groups = [...groupedPhotos.entries()]
             <!-- HTML comes only from our build-time Markdown conversion. -->
             <div class="gallery-introduction" set:html={gallery.introHtml} />
         </header>
+
+        <!-- Desktop/tablet search and filter toolbar; stays hidden on phones (<= 700px). -->
+        <div class="gallery-toolbar">
+            <div class="gallery-controls-row">
+                <div class="gallery-search-box">
+                    <select
+                        id="gallery-scope-select"
+                        class="gallery-scope-select"
+                        aria-label="Search scope"
+                    >
+                        <option value="all">All</option>
+                        <option value="title">Titles</option>
+                        <option value="caption">Descriptions</option>
+                        <option value="credit">Credits</option>
+                        <option value="year">Years</option>
+                        <option value="tags">Tags</option>
+                    </select>
+
+                    <div class="gallery-search-field">
+                        <div class="gallery-search-ghost" aria-hidden="true">
+                            <span class="gallery-ghost-typed"></span><span
+                                class="gallery-ghost-rest"></span>
+                        </div>
+
+                        <input
+                            id="gallery-search-input"
+                            class="gallery-search-input"
+                            type="search"
+                            placeholder="Search photographs…"
+                            autocomplete="off"
+                            spellcheck="false"
+                            role="combobox"
+                            aria-label="Search photographs"
+                            aria-autocomplete="both"
+                            aria-expanded="false"
+                            aria-controls="gallery-autocomplete-popup"
+                        />
+
+                        <kbd class="gallery-search-shortcut" aria-hidden="true"
+                            >/</kbd
+                        >
+
+                        <button
+                            type="button"
+                            class="gallery-search-clear"
+                            aria-label="Clear search"
+                            hidden
+                        >
+                            ×
+                        </button>
+                    </div>
+
+                    <div
+                        id="gallery-autocomplete-popup"
+                        class="gallery-autocomplete-list"
+                        role="dialog"
+                        aria-label="Search suggestions"
+                        hidden
+                    >
+                    </div>
+                </div>
+
+                <select
+                    id="gallery-subject-select"
+                    class="gallery-filter-select"
+                    aria-label="Filter by subject"
+                >
+                    <option value="">Subject: All ({photos.length})</option>
+                    {
+                        subjectOptions.map(([subject, count]) => (
+                            <option value={subject}>
+                                {subject} ({count})
+                            </option>
+                        ))
+                    }
+                </select>
+
+                <select
+                    id="gallery-activity-select"
+                    class="gallery-filter-select"
+                    aria-label="Filter by activity"
+                >
+                    <option value="">Activity: All ({photos.length})</option>
+                    {
+                        activityOptions.map(([activity, count]) => (
+                            <option value={activity}>
+                                {activity} ({count})
+                            </option>
+                        ))
+                    }
+                </select>
+
+                <button type="button" class="gallery-reset-btn" disabled>
+                    Reset
+                </button>
+            </div>
+
+            <p class="gallery-status-count" role="status" aria-live="polite">
+                {photos.length} photographs
+            </p>
+        </div>
 
         <!-- Ordinary anchor links work before enhanced controls are added. -->
         <nav class="gallery-years" aria-label="Gallery years">
@@ -203,6 +354,20 @@ const groups = [...groupedPhotos.entries()]
                 </section>
             ))
         }
+        
+        <!-- Recovery prompt shown only when search + filters narrow down to 0 matches. -->
+        <div class="gallery-empty" hidden>
+            <p class="gallery-empty-message">
+                No photographs match your current search and filters.
+            </p>
+            <div class="gallery-empty-actions"></div>
+        </div>
+
+        <script
+            type="application/json"
+            id="gallery-archive-data"
+            set:html={JSON.stringify(archiveRecords).replace(/</g, "\\u003c")}
+        />
     </div>
 </BaseLayout>
 
@@ -212,6 +377,9 @@ const groups = [...groupedPhotos.entries()]
      * Without JavaScript, those links still open the optimized images.
      */
     import PhotoSwipeLightbox from "photoswipe/lightbox";
+    import { initGalleryControls } from "../lib/galleryControls";
+
+    initGalleryControls();
 
     /*
      * Enhance phone year navigation without filtering any photographs.
@@ -243,7 +411,7 @@ const groups = [...groupedPhotos.entries()]
     const lightbox = new PhotoSwipeLightbox({
         // One collection across all year sections, in document order.
         gallery: ".gallery-page",
-        children: "a.photo-link",
+        children: ".gallery-item:not([hidden]) a.photo-link",
 
         // Load the main viewer code when needed, not during initial rendering.
         pswpModule: () => import("photoswipe"),
@@ -963,6 +1131,379 @@ const groups = [...groupedPhotos.entries()]
     .gallery-back-top:hover {
         background: var(--color-accent);
         color: #fff;
+    }
+
+    /* Ensure native hidden attributes always override explicit flex/block rules. */
+    .gallery-page [hidden] {
+        display: none !important;
+    }
+
+    /* Hidden without JavaScript and hidden on phones (<= 700px) so CLS stays 0. */
+    .gallery-toolbar {
+        display: none;
+    }
+
+    @media (min-width: 701px) {
+        :global(html.js) .gallery-toolbar {
+            display: block;
+            margin-bottom: 20px;
+        }
+    }
+
+    .gallery-controls-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* Unified light-surface search bar: [ Scope ▾ | Search photographs… [/] ]. */
+    .gallery-search-box {
+        position: relative;
+        display: flex;
+        align-items: center;
+        flex: 1 1 320px;
+        min-width: 0;
+        min-height: 44px;
+        border: 1px solid #8a909a;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .gallery-search-box:focus-within {
+        border-color: var(--color-accent);
+        box-shadow: 0 0 0 2px rgba(180, 35, 50, 0.18);
+    }
+
+    .gallery-scope-select,
+    .gallery-filter-select {
+        box-sizing: border-box;
+        height: 44px;
+        -webkit-appearance: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23202124' d='M2.2 4.2a.75.75 0 0 1 1.06 0L6 6.94l2.74-2.74a.75.75 0 1 1 1.06 1.06l-3.27 3.27a.75.75 0 0 1-1.06 0L2.2 5.26a.75.75 0 0 1 0-1.06z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 12px 12px;
+        color: var(--color-text);
+        font-family: inherit;
+        cursor: pointer;
+    }
+
+    .gallery-scope-select {
+        flex: 0 0 auto;
+        padding: 0 28px 0 12px;
+        border: 0;
+        border-right: 1px solid #d0d4dc;
+        border-radius: 7px 0 0 7px;
+        background-color: #eceef2;
+        font-size: 0.9rem;
+        font-weight: 700;
+    }
+
+    .gallery-scope-select:hover {
+        background-color: #e2e5eb;
+    }
+
+    .gallery-scope-select:focus-visible {
+        outline: 2px solid var(--color-accent);
+        outline-offset: -2px;
+    }
+
+    .gallery-search-field {
+        position: relative;
+        display: flex;
+        align-items: center;
+        flex: 1 1 auto;
+        min-width: 0;
+        height: 44px;
+    }
+
+    /* Inline ghost completion sits directly behind the live text cursor. */
+    .gallery-search-ghost {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        box-sizing: border-box;
+        height: 44px;
+        padding: 0 44px 0 12px;
+        overflow: hidden;
+        white-space: pre;
+        font-family: inherit;
+        font-size: 0.95rem;
+        font-weight: 400;
+        letter-spacing: normal;
+        pointer-events: none;
+    }
+
+    .gallery-ghost-typed {
+        visibility: hidden;
+    }
+
+    .gallery-ghost-rest {
+        color: #707070;
+    }
+
+    .gallery-search-input {
+        position: relative;
+        z-index: 1;
+        box-sizing: border-box;
+        width: 100%;
+        height: 44px;
+        padding: 0 44px 0 12px;
+        border: 0;
+        border-radius: 0 7px 7px 0;
+        background: transparent;
+        color: var(--color-text);
+        font-family: inherit;
+        font-size: 0.95rem;
+        font-weight: 400;
+        letter-spacing: normal;
+    }
+
+    .gallery-search-input::placeholder {
+        color: #6e7480;
+        opacity: 1;
+    }
+
+    .gallery-search-input:focus {
+        outline: none;
+    }
+
+    /* Hide native browser clear icon so only our 44x44 clear button shows. */
+    .gallery-search-input::-webkit-search-decoration,
+    .gallery-search-input::-webkit-search-cancel-button {
+        -webkit-appearance: none;
+        appearance: none;
+        display: none;
+    }
+
+    .gallery-search-shortcut {
+        position: absolute;
+        right: 10px;
+        z-index: 2;
+        padding: 2px 7px;
+        border: 1px solid #b5bac3;
+        border-radius: 5px;
+        background: #f4f4f2;
+        color: var(--color-text-muted);
+        font-family: inherit;
+        font-size: 0.8rem;
+        font-weight: 700;
+        line-height: 1.2;
+        pointer-events: none;
+    }
+
+    .gallery-search-clear {
+        position: absolute;
+        right: 0;
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 0;
+        border-radius: 0 7px 7px 0;
+        background: transparent;
+        color: var(--color-text-muted);
+        font-family: inherit;
+        font-size: 1.3rem;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    .gallery-search-clear:hover {
+        color: var(--color-accent);
+    }
+
+    .gallery-search-clear:focus-visible {
+        outline: 2px solid var(--color-accent);
+        outline-offset: -2px;
+    }
+
+    /* Google-style suggestion popup anchored beneath the search box. */
+    .gallery-autocomplete-list {
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        left: 0;
+        z-index: 30;
+        padding: 6px 0;
+        border: 1px solid #c6cbd4;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.14);
+    }
+
+    :global(.gallery-suggestion-entry) {
+        display: flex;
+        align-items: center;
+    }
+
+    :global(.gallery-suggestion-row) {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 44px;
+        padding: 8px 14px;
+        border: 0;
+        background: transparent;
+        color: var(--color-text);
+        font-family: inherit;
+        font-size: 0.92rem;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    :global(.gallery-suggestion-entry:hover),
+    :global(.gallery-suggestion-row.is-active) {
+        background: #f1f3f7;
+    }
+
+    :global(.gallery-suggestion-label) {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :global(.gallery-suggestion-badge) {
+        flex: 0 0 auto;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #eef0f4;
+        color: #4a505a;
+        font-size: 0.78rem;
+        font-weight: 600;
+    }
+
+    :global(.gallery-recent-remove) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--color-text-muted);
+        font-family: inherit;
+        font-size: 1.2rem;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    :global(.gallery-recent-remove:hover) {
+        color: var(--color-accent);
+    }
+
+    /* Subject ▾, Activity ▾, and Reset buttons alongside search. */
+    .gallery-filter-select {
+        flex: 0 1 auto;
+        padding: 0 32px 0 12px;
+        border: 1px solid #8a909a;
+        border-radius: 8px;
+        background-color: #fff;
+        font-size: 0.9rem;
+        font-weight: 600;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .gallery-filter-select:hover,
+    .gallery-reset-btn:hover:not(:disabled) {
+        border-color: var(--color-text);
+        background-color: #fafafb;
+    }
+
+    .gallery-reset-btn {
+        box-sizing: border-box;
+        height: 44px;
+        padding: 0 14px;
+        border: 1px solid #8a909a;
+        border-radius: 8px;
+        background: #fff;
+        color: var(--color-text);
+        font-family: inherit;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .gallery-reset-btn:disabled {
+        opacity: 0.48;
+        cursor: default;
+        box-shadow: none;
+    }
+
+    .gallery-filter-select:focus-visible,
+    .gallery-reset-btn:focus-visible,
+    :global(.gallery-empty-btn:focus-visible) {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 2px;
+    }
+
+    .gallery-status-count {
+        margin: 10px 0 0;
+        color: var(--color-text-muted);
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    /* Keep all 12 year jump links in place; gray out years with 0 matches. */
+    .gallery-years a.is-empty {
+        color: #595e66;
+        text-decoration: none;
+        opacity: 0.55;
+        cursor: default;
+    }
+
+    /* Zero-match recovery card. */
+    .gallery-empty {
+        padding: 36px 24px;
+        border: 1px solid #d0d4dc;
+        border-radius: 8px;
+        background: #fff;
+        text-align: center;
+    }
+
+    .gallery-empty-message {
+        margin: 0 0 16px;
+        font-size: 1.05rem;
+        font-weight: 600;
+    }
+
+    .gallery-empty-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    :global(.gallery-empty-btn) {
+        min-height: 44px;
+        padding: 0 16px;
+        border: 1px solid #8a909a;
+        border-radius: 8px;
+        background: var(--color-background);
+        color: var(--color-text);
+        font-family: inherit;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    :global(.gallery-empty-btn:hover) {
+        border-color: var(--color-accent);
+        background: #fff;
+        color: var(--color-accent);
     }
 
 </style>
