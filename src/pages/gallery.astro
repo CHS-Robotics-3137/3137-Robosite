@@ -39,10 +39,10 @@ const photos = await Promise.all(
             format: "webp",
         });
 
-        // Supply useful thumbnail sizes without upscaling small originals.
+        // Match real 1x (371px) and 1.75x–2x (651–744px) column widths without upscaling.
         const thumbnailWidths = [
             ...new Set([
-                ...[320, 640].filter((width) => width < photo.width),
+                ...[380, 660, 760].filter((width) => width < photo.width),
                 Math.min(960, photo.width),
             ]),
         ];
@@ -101,8 +101,8 @@ const groups = [...groupedPhotos.entries()]
             }
         </nav>
 
-        <!-- Enabled by JavaScript; ordinary year links remain the fallback. -->
-        <div class="gallery-year-picker" hidden>
+        <!-- Shown immediately on phones when html.js is set; year links stay fallback. -->
+        <div class="gallery-year-picker">
             <label for="gallery-year-select">Jump to year</label>
 
             <select id="gallery-year-select">
@@ -129,7 +129,7 @@ const groups = [...groupedPhotos.entries()]
                         <a
                             class="gallery-back-top"
                             href="#gallery-top"
-                            aria-label={`Back to gallery top from ${group.label}`}
+                            aria-label="Back to top"
                             title="Back to top"
                         >
                             <span aria-hidden="true">↑</span>
@@ -159,7 +159,7 @@ const groups = [...groupedPhotos.entries()]
                                         src={entry.photo}
                                         alt={entry.title}
                                         widths={entry.thumbnailWidths}
-                                        sizes="(max-width: 700px) calc(100vw - 40px), (max-width: 1000px) 45vw, 360px"
+                                        sizes="(max-width: 700px) calc(100vw - 40px), (max-width: 1000px) calc((100vw - 68px) / 2), (max-width: 1200px) calc((100vw - 88px) / 3), 371px"
                                         format="webp"
                                         loading={entry.id === groups[0]?.items[0]?.id ? "eager" : "lazy"}
                                         fetchpriority={entry.id === groups[0]?.items[0]?.id ? "high" : "auto"}
@@ -172,13 +172,18 @@ const groups = [...groupedPhotos.entries()]
                                     <a
                                         class="caption-open"
                                         href={entry.largeImage.src}
+                                        aria-label={`View larger image: ${entry.title}`}
                                     >
                                         <h3>{entry.title}</h3>
                                         <p class="photo-credit">{entry.credit}</p>
                                     </a>
 
                                     {entry.source && (
-                                        <a class="caption-source" href={entry.source}>
+                                        <a
+                                            class="caption-source"
+                                            href={entry.source}
+                                            aria-label={`Original source for ${entry.title}`}
+                                        >
                                             Original source
                                         </a>
                                     )}
@@ -214,12 +219,8 @@ const groups = [...groupedPhotos.entries()]
      */
     const yearSelect =
         document.querySelector<HTMLSelectElement>("#gallery-year-select");
-    const yearPicker =
-        document.querySelector<HTMLElement>(".gallery-year-picker");
-    const yearLinks =
-        document.querySelector<HTMLElement>(".gallery-years");
 
-    if (yearSelect && yearPicker && yearLinks) {
+    if (yearSelect) {
         yearSelect.addEventListener("change", () => {
             const section = document.getElementById(yearSelect.value);
             if (!section) return;
@@ -237,9 +238,6 @@ const groups = [...groupedPhotos.entries()]
             // Allow the same year to be selected again after scrolling away.
             yearSelect.value = "";
         });
-
-        yearPicker.hidden = false;
-        yearLinks.classList.add("has-year-picker");
     }
 
     const lightbox = new PhotoSwipeLightbox({
@@ -897,11 +895,11 @@ const groups = [...groupedPhotos.entries()]
     }
 
     @media (max-width: 700px) {
-        .gallery-years.has-year-picker {
+        :global(html.js) .gallery-years {
             display: none;
         }
 
-        .gallery-year-picker:not([hidden]) {
+        :global(html.js) .gallery-year-picker {
             display: flex;
             flex-wrap: wrap;
             align-items: center;

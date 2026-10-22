@@ -1,0 +1,4 @@
+# robots.txt
+# Allows search engine crawlers to index all pages on the site.
+User-agent: *
+Allow: /

@@ -28,12 +28,18 @@ const hasHero = Astro.slots.has("hero");
         <title>{title}</title>
         <!-- Search engines may use this summary in results. -->
         {description && <meta name="description" content={description} />}
+        <!-- Tell search engines the canonical URL for this page. -->
+        <link rel="canonical" href={Astro.url.href} />
         <!-- Use the favicon -->
         <link
             rel="icon"
             href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/images/favicon.ico`}
             sizes="any"
         />
+        <!-- Flag JavaScript availability before first paint to prevent layout shifts. -->
+        <script is:inline>
+            document.documentElement.classList.add("js");
+        </script>
     </head>
     <body>
         <!-- Pages can supply an opening hero above the shared navigation. -->

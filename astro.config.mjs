@@ -14,6 +14,11 @@ export default defineConfig({
     // Use consistent slash-ended page URLs.
     trailingSlash: "always",
 
+    build: {
+        // Inline small page stylesheets so CSS never blocks initial rendering.
+        inlineStylesheets: "always",
+    },
+
     // Keep generated CSS compatible with Safari 15, including iOS 15.
     vite: {
         css: {
