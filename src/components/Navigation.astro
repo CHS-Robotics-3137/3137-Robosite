@@ -14,6 +14,7 @@ const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
 const links = [
     { label: "Home", href: homeUrl },
     { label: "Robots", href: `${base}/robots/` },
+    { label: "Gallery", href: `${base}/gallery/` },
     { label: "Sponsors", href: `${base}/sponsors/` },
 ];
 ---
@@ -48,11 +49,34 @@ const links = [
             ))
         }
     </div>
+
+    <!-- Native expandable phone menu; desktop links remain unchanged. -->
+    <details class="mobile-menu">
+        <summary>Menu</summary>
+
+        <div class="mobile-menu-links">
+            {
+                links.map(({ label, href }) => (
+                    <a
+                        href={href}
+                        aria-current={
+                            currentPath === (href.replace(/\/$/, "") || "/")
+                                ? "page"
+                                : undefined
+                        }
+                    >
+                        {label}
+                    </a>
+                ))
+            }
+        </div>
+    </details>
 </nav>
 
 <style>
     /* Use the same height variable as the homepage's navigation overlap. */
     .team-navigation {
+        position: relative;
         box-sizing: border-box;
         display: flex;
         align-items: center;
@@ -83,7 +107,8 @@ const links = [
     /* Equal-width link areas keep the three page links evenly distributed. */
     .navigation-links {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(0, 1fr);
         align-items: center;
         flex: 1;
         min-width: 0;
@@ -116,11 +141,20 @@ const links = [
         border-radius: 2px;
     }
 
-    /* Use equal gaps between the logo and links on narrow screens. */
-    @media (max-width: 480px) {
+    /* Desktop uses the existing spread-out links, not the expandable menu. */
+    .mobile-menu {
+        display: none;
+    }
+
+    /*
+     * Phones show the logo and a comfortably sized Menu control.
+     * The dropdown overlays content without changing the navbar height.
+     */
+    @media (max-width: 700px) {
         .team-navigation {
             justify-content: space-between;
-            gap: 0;
+            gap: 16px;
+            padding-inline: 20px;
         }
 
         .team-logo {
@@ -128,13 +162,81 @@ const links = [
             height: 48px;
         }
 
-        /* Place the links directly into the navbar's flex layout. */
         .navigation-links {
-            display: contents;
+            display: none;
         }
 
-        .navigation-links a {
-            flex: 0 0 auto;
+        .mobile-menu {
+            display: block;
+        }
+
+        .mobile-menu summary {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-height: 44px;
+            padding-inline: 12px;
+            border: 1px solid currentColor;
+            border-radius: 8px;
+            color: var(--nav-text);
+            font-size: 1rem;
+            font-weight: 700;
+            list-style: none;
+            cursor: pointer;
+        }
+
+        /* Replace the browser marker with a consistent visual indicator. */
+        .mobile-menu summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .mobile-menu summary::after {
+            content: "+";
+            font-size: 1.3rem;
+            line-height: 1;
+        }
+
+        .mobile-menu[open] summary::after {
+            content: "−";
+        }
+
+        .mobile-menu summary:focus-visible {
+            outline: 2px solid var(--nav-text);
+            outline-offset: 3px;
+        }
+
+        .mobile-menu-links {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            left: 0;
+            z-index: 1;
+            display: grid;
+            gap: 4px;
+            padding: 12px 20px 20px;
+            background: var(--nav-background);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .mobile-menu-links a {
+            display: flex;
+            align-items: center;
+            min-height: 48px;
+            padding-inline: 12px;
+            border-radius: 6px;
+            color: var(--nav-text);
+            font-size: var(--nav-font-size);
+            font-weight: 700;
+            text-decoration: none;
+            text-underline-offset: 6px;
+        }
+
+        .mobile-menu-links a[aria-current="page"],
+        .mobile-menu-links a:hover {
+            text-decoration: underline;
+            background: rgba(255, 255, 255, 0.08);
         }
     }
 </style>

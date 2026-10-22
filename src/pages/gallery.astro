@@ -1,0 +1,970 @@
+---
+/*
+ * gallery.astro
+ * Builds the Gallery from explicitly listed entries in gallery.md.
+ * Resolves local images, groups them by year, and generates optimized photos.
+ * This foundation uses ordinary image links before the viewer is added.
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { Image, getImage } from "astro:assets";
+import type { ImageMetadata } from "astro";
+import { parseGallery } from "../lib/parseGallery";
+import galleryMarkdown from "../content/gallery.md?raw";
+import "photoswipe/style.css";
+
+// Import image metadata, not the original image files into browser JavaScript.
+const imageLibrary = import.meta.glob<ImageMetadata>(
+    "/src/assets/images/**/*.{png,jpg,jpeg,webp,avif}",
+    { eager: true, import: "default" },
+);
+
+const gallery = await parseGallery(galleryMarkdown);
+
+// Resolve and optimize only the photos explicitly listed in gallery.md.
+const photos = await Promise.all(
+    gallery.photos.map(async (entry) => {
+        const photo = imageLibrary[`/src/assets/images/${entry.image}`];
+
+        if (!photo) {
+            throw new Error(
+                `gallery.md: Photo "${entry.image}" was not found in src/assets/images. Check its path and capitalization.`,
+            );
+        }
+
+        // The fallback link opens a larger WebP, not the full original PNG.
+        // Never enlarge a small source beyond its original width.
+        const largeImage = await getImage({
+            src: photo,
+            width: Math.min(1600, photo.width),
+            format: "webp",
+        });
+
+        // Supply useful thumbnail sizes without upscaling small originals.
+        const thumbnailWidths = [
+            ...new Set([
+                ...[320, 640].filter((width) => width < photo.width),
+                Math.min(960, photo.width),
+            ]),
+        ];
+
+        return {
+            ...entry,
+            photo,
+            largeImage,
+            thumbnailWidths,
+        };
+    }),
+);
+
+// Preserve Markdown order within each year.
+const groupedPhotos = new Map<number | null, typeof photos>();
+
+for (const photo of photos) {
+    const existing = groupedPhotos.get(photo.year);
+
+    if (existing) {
+        existing.push(photo);
+    } else {
+        groupedPhotos.set(photo.year, [photo]);
+    }
+}
+
+// Show newest years first, with the unknown-year collection last.
+const groups = [...groupedPhotos.entries()]
+    .sort(([first], [second]) => (second ?? -1) - (first ?? -1))
+    .map(([year, items]) => ({
+        year,
+        label: year === null ? "Unknown year" : String(year),
+        id: `gallery-year-${year ?? "unknown"}`,
+        items,
+    }));
+---
+
+<BaseLayout
+    title={gallery.title}
+    description="Explore photographs of Team 3137’s robots, people, competitions, and history."
+>
+    <div class="gallery-page">
+        <header class="gallery-intro" id="gallery-top" tabindex="-1">
+            <h1>{gallery.title}</h1>
+
+            <!-- HTML comes only from our build-time Markdown conversion. -->
+            <div class="gallery-introduction" set:html={gallery.introHtml} />
+        </header>
+
+        <!-- Ordinary anchor links work before enhanced controls are added. -->
+        <nav class="gallery-years" aria-label="Gallery years">
+            {
+                groups.map((group) => (
+                    <a href={`#${group.id}`}>{group.label}</a>
+                ))
+            }
+        </nav>
+
+        <!-- Enabled by JavaScript; ordinary year links remain the fallback. -->
+        <div class="gallery-year-picker" hidden>
+            <label for="gallery-year-select">Jump to year</label>
+
+            <select id="gallery-year-select">
+                <option value="">Choose a year…</option>
+                {
+                    groups.map((group) => (
+                        <option value={group.id}>{group.label}</option>
+                    ))
+                }
+            </select>
+        </div>
+
+        {
+            groups.map((group) => (
+                <section
+                    id={group.id}
+                    class="gallery-year"
+                    aria-labelledby={`${group.id}-heading`}
+                >
+                    <div class="gallery-year-heading">
+                        <h2 id={`${group.id}-heading`}>{group.label}</h2>
+
+                        {/* Ordinary anchor navigation also works without JavaScript. */}
+                        <a
+                            class="gallery-back-top"
+                            href="#gallery-top"
+                            aria-label={`Back to gallery top from ${group.label}`}
+                            title="Back to top"
+                        >
+                            <span aria-hidden="true">↑</span>
+                        </a>
+                    </div>
+
+                    <div class="photo-grid">
+                        {group.items.map((entry) => (
+                            <figure
+                                class="gallery-item"
+                                id={entry.id}
+                                style={`--photo-ratio: ${entry.photo.width / entry.photo.height}`}
+                            >
+                                {/* A working image link remains our viewer fallback. */}
+                                <a
+                                    class="photo-link"
+                                    href={entry.largeImage.src}
+                                    data-pswp-width={Math.min(1600, entry.photo.width)}
+                                    data-pswp-height={Math.round(
+                                        entry.photo.height *
+                                        Math.min(1600, entry.photo.width) /
+                                        entry.photo.width
+                                    )}
+                                    aria-label={`View larger image: ${entry.title}`}
+                                >
+                                    <Image
+                                        src={entry.photo}
+                                        alt={entry.title}
+                                        widths={entry.thumbnailWidths}
+                                        sizes="(max-width: 700px) calc(100vw - 40px), (max-width: 1000px) 45vw, 360px"
+                                        format="webp"
+                                        loading={entry.id === groups[0]?.items[0]?.id ? "eager" : "lazy"}
+                                        fetchpriority={entry.id === groups[0]?.items[0]?.id ? "high" : "auto"}
+                                        class="gallery-photo"
+                                    />
+                                </a>
+
+                                {/* Caption text also opens the photo; the source stays separate. */}
+                                <figcaption>
+                                    <a
+                                        class="caption-open"
+                                        href={entry.largeImage.src}
+                                    >
+                                        <h3>{entry.title}</h3>
+                                        <p class="photo-credit">{entry.credit}</p>
+                                    </a>
+
+                                    {entry.source && (
+                                        <a class="caption-source" href={entry.source}>
+                                            Original source
+                                        </a>
+                                    )}
+                                </figcaption>
+                                {/* Only the title and description appear inside the viewer. */}
+                                <template class="viewer-details">
+                                    <h2 class="viewer-title">{entry.title}</h2>
+
+                                    <div
+                                        class="viewer-caption"
+                                        set:html={entry.html}
+                                    />
+                                </template>
+                            </figure>
+                        ))}
+                    </div>
+                </section>
+            ))
+        }
+    </div>
+</BaseLayout>
+
+<script>
+    /*
+     * Enhance ordinary photo links with a locally bundled viewer.
+     * Without JavaScript, those links still open the optimized images.
+     */
+    import PhotoSwipeLightbox from "photoswipe/lightbox";
+
+    /*
+     * Enhance phone year navigation without filtering any photographs.
+     * Keep ordinary links available if JavaScript does not run.
+     */
+    const yearSelect =
+        document.querySelector<HTMLSelectElement>("#gallery-year-select");
+    const yearPicker =
+        document.querySelector<HTMLElement>(".gallery-year-picker");
+    const yearLinks =
+        document.querySelector<HTMLElement>(".gallery-years");
+
+    if (yearSelect && yearPicker && yearLinks) {
+        yearSelect.addEventListener("change", () => {
+            const section = document.getElementById(yearSelect.value);
+            if (!section) return;
+
+            // Native anchor navigation respects the section's scroll margin.
+            window.location.hash = section.id;
+
+            // Move keyboard/screen-reader focus to the destination heading.
+            const heading = section.querySelector<HTMLHeadingElement>("h2");
+            if (heading) {
+                heading.setAttribute("tabindex", "-1");
+                heading.focus({ preventScroll: true });
+            }
+
+            // Allow the same year to be selected again after scrolling away.
+            yearSelect.value = "";
+        });
+
+        yearPicker.hidden = false;
+        yearLinks.classList.add("has-year-picker");
+    }
+
+    const lightbox = new PhotoSwipeLightbox({
+        // One collection across all year sections, in document order.
+        gallery: ".gallery-page",
+        children: "a.photo-link",
+
+        // Load the main viewer code when needed, not during initial rendering.
+        pswpModule: () => import("photoswipe"),
+
+        // Stop at the beginning/end rather than wrapping around.
+        loop: false,
+
+        // Preload only one next image instead of the whole collection.
+        preload: [0, 1],
+
+        // Support keyboard navigation and return focus after closing.
+        escKey: true,
+        arrowKeys: true,
+        returnFocus: true,
+    });
+
+        /*
+     * Place the title beside the counter without reducing image space.
+     * Desktop hover and keyboard focus reveal the description.
+     * Tapping/clicking the title toggles it explicitly.
+     */
+    lightbox.on("uiRegister", () => {
+        const pswp = lightbox.pswp;
+        if (!pswp) return;
+        const phoneView = window.matchMedia("(max-width: 700px)").matches;
+        /*
+         * Phones start with a clean photograph.
+         * After opening, use PhotoSwipe's existing control visibility:
+         * tapping the photograph reveals or hides the controls normally.
+         */
+        if (phoneView) {
+            pswp.on("openingAnimationEnd", () => {
+                pswp.element?.classList.remove("pswp--ui-visible");
+            });
+        }
+
+        pswp.ui?.registerElement({
+            name: "archive-details",
+            order: 7,
+            appendTo: "bar",
+            isButton: false,
+
+            onInit: (panel) => {
+                /*
+                 * Desktop uses a toggle button.
+                 * Phone uses a heading: tapping the photograph already
+                 * shows or hides PhotoSwipe's entire control layer.
+                 */
+                const titleButton = document.createElement(
+                    phoneView ? "h2" : "button",
+                );
+                titleButton.className = "viewer-title-toggle";
+
+                if (!phoneView) {
+                    titleButton.setAttribute("type", "button");
+                    titleButton.setAttribute(
+                        "aria-controls",
+                        "gallery-viewer-description",
+                    );
+                }
+
+                const description = document.createElement("div");
+                description.id = "gallery-viewer-description";
+                description.className = "viewer-caption";
+
+                panel.append(titleButton, description);
+
+                let pinnedOpen = false;
+                let hovered = false;
+                let keyboardFocused = false;
+
+                const renderVisibility = () => {
+                    /*
+                     * Phone title and description stay together inside
+                     * PhotoSwipe's existing show/hide control layer.
+                     * Only desktop needs our separate reveal behavior.
+                     */
+                    if (phoneView) {
+                        description.hidden = false;
+                        return;
+                    }
+
+                    const open =
+                        pinnedOpen || hovered || keyboardFocused;
+
+                    description.hidden = !open;
+                    titleButton.setAttribute(
+                        "aria-expanded",
+                        String(open),
+                    );
+                };
+
+                const isCaptionTarget = (target: EventTarget | null) =>
+                    target instanceof Element &&
+                    Boolean(
+                        target.closest(
+                            ".pswp__archive-details, .pswp__button--arrow",
+                        ),
+                    );
+
+                /*
+                 * Delegate hover handling so moving from an arrow into
+                 * the caption keeps the description available.
+                 * Touch input does not create sticky hover states.
+                 */
+                const root = pswp.element;
+
+                root?.addEventListener("pointerover", (event) => {
+                    if (
+                        event.pointerType !== "mouse" &&
+                        event.pointerType !== "pen"
+                    ) {
+                        return;
+                    }
+
+                    hovered = isCaptionTarget(event.target);
+                    renderVisibility();
+                });
+
+                root?.addEventListener("pointerout", (event) => {
+                    if (
+                        event.pointerType !== "mouse" &&
+                        event.pointerType !== "pen"
+                    ) {
+                        return;
+                    }
+
+                    hovered = isCaptionTarget(event.relatedTarget);
+                    renderVisibility();
+                });
+
+                root?.addEventListener("focusin", (event) => {
+                    keyboardFocused =
+                        isCaptionTarget(event.target) &&
+                        event.target instanceof Element &&
+                        event.target.matches(":focus-visible");
+
+                    renderVisibility();
+                });
+
+                root?.addEventListener("focusout", (event) => {
+                    keyboardFocused =
+                        isCaptionTarget(event.relatedTarget) &&
+                        event.relatedTarget instanceof Element &&
+                        event.relatedTarget.matches(":focus-visible");
+
+                    renderVisibility();
+                });
+
+                if (!phoneView) {
+                    titleButton.addEventListener("click", () => {
+                        pinnedOpen = !pinnedOpen;
+                        renderVisibility();
+                    });
+                }
+
+                const updateDetails = () => {
+                    const template = pswp.currSlide?.data.element
+                        ?.closest(".gallery-item")
+                        ?.querySelector<HTMLTemplateElement>(
+                            "template.viewer-details",
+                        );
+
+                    titleButton.textContent =
+                        template?.content.querySelector(".viewer-title")
+                            ?.textContent ?? "Photo";
+
+                    const caption =
+                        template?.content.querySelector(".viewer-caption");
+
+                    description.replaceChildren();
+
+                    if (caption) {
+                        description.append(
+                            ...Array.from(caption.childNodes, (node) =>
+                                node.cloneNode(true),
+                            ),
+                        );
+                    }
+
+                    // A new photograph starts with its tap-toggle closed.
+                    pinnedOpen = false;
+                    renderVisibility();
+                };
+
+                pswp.on("change", updateDetails);
+                updateDetails();
+            },
+        });
+    });
+
+    lightbox.init();
+
+    /*
+     * Caption links open the matching photo without becoming extra slides.
+     * Modified clicks retain their ordinary browser link behavior.
+     */
+    document
+        .querySelectorAll<HTMLAnchorElement>(".gallery-item .caption-open")
+        .forEach((captionLink) => {
+            captionLink.addEventListener("click", (event) => {
+                if (
+                    event.button !== 0 ||
+                    event.ctrlKey ||
+                    event.metaKey ||
+                    event.shiftKey ||
+                    event.altKey
+                ) {
+                    return;
+                }
+
+                const photoLink = captionLink
+                    .closest(".gallery-item")
+                    ?.querySelector<HTMLAnchorElement>("a.photo-link");
+
+                if (!photoLink) return;
+
+                event.preventDefault();
+                photoLink.click();
+            });
+        });
+</script>
+
+<style>
+    /*
+     * Gallery-only layout.
+     * Shared palette and fonts stay in theme.css.
+     */
+
+    .gallery-page {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 1200px;
+        margin-inline: auto;
+        padding: 48px 24px 72px;
+    }
+
+    .gallery-intro {
+        max-width: 720px;
+        margin-bottom: 28px;
+    }
+
+    .gallery-intro h1 {
+        margin: 0 0 16px;
+        font-family: var(--font-heading);
+        font-size: clamp(2.5rem, 6vw, 4.5rem);
+        line-height: 1.1;
+    }
+
+    .gallery-introduction {
+        color: var(--color-text-muted);
+    }
+
+    .gallery-introduction :global(p) {
+        margin: 0 0 16px;
+    }
+
+    /* Temporary year links; the phone jump picker comes later. */
+    .gallery-years {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 20px;
+        margin-bottom: 40px;
+    }
+
+    .gallery-years a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        font-weight: 700;
+    }
+
+    .gallery-year {
+        margin-top: 48px;
+        scroll-margin-top: calc(var(--nav-height) + 24px);
+    }
+
+    .gallery-year h2 {
+        margin: 0 0 20px;
+        font-family: var(--font-heading);
+        font-size: 1.75rem;
+    }
+
+    /*
+     * Masonry-style columns preserve each photo's proportions.
+     * Equal column widths give portrait images more horizontal space.
+     */
+    .photo-grid {
+        column-count: 3;
+        column-gap: 20px;
+    }
+
+    /* Keep each photo and its caption together within a column. */
+    .gallery-item {
+        break-inside: avoid;
+        margin: 0 0 24px;
+    }
+
+    .photo-link {
+        display: block;
+        border-radius: 8px;
+    }
+
+    /* Preserve the entire photograph without a fixed height or crop. */
+    .gallery-photo {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+    }
+
+    figcaption {
+        padding-top: 12px;
+        overflow-wrap: anywhere;
+    }
+
+    figcaption h3 {
+        margin: 0 0 6px;
+        font-size: 1rem;
+        line-height: 1.4;
+    }
+
+    .photo-credit {
+        margin: 0 0 6px;
+        color: var(--color-text-muted);
+        font-size: 0.85rem;
+    }
+
+    a {
+        color: var(--color-accent);
+        text-underline-offset: 3px;
+    }
+
+    a:focus-visible {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 4px;
+    }
+
+    /* Caption text opens the photograph without looking like a text link. */
+    .caption-open {
+        display: block;
+        color: inherit;
+        text-decoration: none;
+    }
+
+    /*
+     * Only devices with a precise pointer and hover get hidden overlays.
+     * Phones and touch-only tablets keep their readable captions underneath.
+     */
+    @media (min-width: 701px) and (hover: hover) and (pointer: fine) {
+        .gallery-item {
+            position: relative;
+        }
+
+        .gallery-photo {
+            transition: filter 180ms ease;
+        }
+
+        /*
+         * Overlay the bottom of the photo.
+         * Long information can scroll instead of being cut off or abbreviated.
+         * Opacity hides the overlay visually while keeping its text accessible.
+         * Keyboard focus within the photo reveals the caption and its links.
+         */
+        .gallery-item figcaption {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 1;
+            box-sizing: border-box;
+            max-height: 100%;
+            overflow-y: auto;
+            padding: 18px 16px 14px;
+            border-radius: 0 0 8px 8px;
+            background: linear-gradient(
+                transparent,
+                var(--panel-background) 32%
+            );
+            color: var(--panel-heading);
+            opacity: 0;
+            transition: opacity 180ms ease;
+        }
+
+        /* Wrap text normally—no single-line truncation or ellipses. */
+        .gallery-item figcaption h3,
+        .gallery-item .photo-credit {
+            white-space: normal;
+            overflow-wrap: break-word;
+        }
+
+        .gallery-item .photo-credit {
+            color: var(--panel-text);
+        }
+
+        .caption-source {
+            display: inline-block;
+            padding-block: 4px;
+            color: var(--panel-heading);
+            font-size: 0.85rem;
+        }
+
+        /* Mouse hover and keyboard focus reveal the same information. */
+        .gallery-item:hover figcaption,
+        .gallery-item:focus-within figcaption {
+            opacity: 1;
+        }
+
+        .gallery-item:hover .gallery-photo,
+        .gallery-item:focus-within .gallery-photo {
+            filter: brightness(0.85);
+        }
+
+        .gallery-item a:focus-visible {
+            outline-color: var(--panel-heading);
+        }
+    }
+
+    /* Respect visitors who request less animation. */
+    @media (prefers-reduced-motion: reduce) {
+        .gallery-photo,
+        .gallery-item figcaption {
+            transition: none;
+        }
+    }
+
+        /* Two columns give photos more room on tablets and phones. */
+    @media (max-width: 1000px) {
+        .photo-grid {
+            column-count: 2;
+        }
+    }
+
+    /*
+     * Phones use compact justified rows instead of flowing columns.
+     * Image proportions determine their widths; each row fills the space.
+     */
+    @media (max-width: 700px) {
+        .gallery-page {
+            padding: 32px 20px 48px;
+        }
+
+        /* Phones show one full-width photo per row, without cropping. */
+        .photo-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            column-count: auto;
+            gap: 24px;
+        }
+
+        .gallery-item {
+            min-width: 0;
+            margin: 0;
+        }
+
+        /* Keep thumbnail information compact and consistent between tiles. */
+        .gallery-item figcaption {
+            padding-top: 6px;
+        }
+
+        .gallery-item figcaption h3 {
+            margin: 0;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+
+        /*
+         * These remain in the document, but are hidden from phone thumbnails.
+         * We'll expose the complete information in the enlarged viewer.
+         */
+        .gallery-item .photo-credit,
+        .gallery-item .caption-source {
+            display: none;
+        }
+
+        .gallery-year {
+            margin-top: 36px;
+        }
+    }
+
+    /*
+     * PhotoSwipe hides arrows on touch devices by default.
+     * Reveal available arrows while preserving its disabled/end-of-gallery rules.
+     */
+    :global(.pswp--touch .pswp__button--arrow:not(:disabled)) {
+        visibility: visible;
+    }
+
+    /*
+     * Phone arrows remain discoverable without dominating the photograph.
+     * Touching or keyboard-focusing them restores full opacity.
+     */
+    @media (max-width: 700px) {
+        :global(.pswp.pswp--touch .pswp__button--arrow:not(:disabled)) {
+            opacity: 0.55;
+        }
+
+        :global(.pswp.pswp--touch .pswp__button--arrow:not(:disabled):active),
+        :global(.pswp.pswp--touch .pswp__button--arrow:not(:disabled):focus-visible) {
+            opacity: 1;
+        }
+    }
+
+    /*
+     * Keep the counter and title together on the left of the toolbar.
+     * Zoom and close controls remain on the right.
+     */
+    :global(.pswp__counter) {
+        flex: 0 0 auto;
+        margin-right: 12px;
+    }
+
+    :global(.pswp__archive-details) {
+        position: relative;
+        flex: 1;
+        min-width: 0;
+        align-self: flex-start;
+        color: #fff;
+        font-family: var(--font-body);
+        pointer-events: auto;
+    }
+
+    /*
+     * The title is a real button, providing a touch toggle and
+     * an accessible expanded/collapsed state.
+     */
+    :global(.pswp__archive-details .viewer-title-toggle) {
+        display: block;
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 72px;
+        padding: 16px 12px;
+        border: 0;
+        background: rgba(0, 0, 0, 0.85);
+        color: #fff;
+        font: inherit;
+        font-size: 1.15rem;
+        font-weight: 700;
+        line-height: 1.3;
+        text-align: left;
+        overflow-wrap: anywhere;
+        cursor: pointer;
+    }
+
+    /*
+     * The description sits directly beneath the title.
+     * No fixed height, internal scrollbar, or reserved image space.
+     * Keep descriptions brief in gallery.md.
+     */
+    :global(.pswp__archive-details .viewer-caption) {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        box-sizing: border-box;
+        width: 520px;
+        max-width: calc(100vw - 110px);
+        padding: 18px 20px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        font-size: 1rem;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+
+    /* Explicitly preserve native hidden behavior for the description. */
+    :global(.pswp__archive-details .viewer-caption[hidden]) {
+        display: none;
+    }
+
+    :global(.pswp__archive-details .viewer-caption > :first-child) {
+        margin-top: 0;
+    }
+
+    :global(.pswp__archive-details .viewer-caption > :last-child) {
+        margin-bottom: 0;
+    }
+
+    :global(.pswp__archive-details a) {
+        color: #fff;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+
+    :global(.pswp__archive-details .viewer-title-toggle:focus-visible),
+    :global(.pswp__archive-details a:focus-visible) {
+        outline: 2px solid #fff;
+        outline-offset: -3px;
+    }
+
+    /*
+     * Phone information floats centrally below the top controls.
+     * It remains inside PhotoSwipe's toolbar, inheriting its native
+     * show/hide behavior rather than introducing another visibility system.
+     */
+    @media (max-width: 700px) {
+        /* Restore the counter's spacer now the title is outside the row. */
+        :global(.pswp__counter) {
+            margin-right: auto;
+        }
+
+        :global(.pswp__archive-details) {
+            /* Center the entire caption block over the viewer. */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-sizing: border-box;
+            width: calc(100vw - 40px);
+            max-width: 520px;
+            padding: 14px 16px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.85);
+            text-align: center;
+
+            /* Taps pass through to PhotoSwipe's normal image controls. */
+            pointer-events: none;
+        }
+
+        :global(.pswp__archive-details .viewer-title-toggle) {
+            width: auto;
+            min-height: 0;
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            font-size: 1.05rem;
+            text-align: center;
+            cursor: inherit;
+        }
+
+        :global(.pswp__archive-details .viewer-caption) {
+            position: static;
+            width: auto;
+            max-width: none;
+            margin-top: 8px;
+            padding: 0;
+            background: transparent;
+            font-size: 0.95rem;
+            text-align: center;
+        }
+    }
+
+    /* Desktop keeps ordinary year links; phones get a compact native picker. */
+    .gallery-year-picker {
+        display: none;
+    }
+
+    @media (max-width: 700px) {
+        .gallery-years.has-year-picker {
+            display: none;
+        }
+
+        .gallery-year-picker:not([hidden]) {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px 14px;
+            margin-bottom: 32px;
+        }
+
+        .gallery-year-picker label {
+            font-weight: 700;
+        }
+
+        .gallery-year-picker select {
+            box-sizing: border-box;
+            min-width: 0;
+            min-height: 44px;
+            padding: 10px 12px;
+            border: 1px solid var(--color-text-muted);
+            border-radius: 8px;
+            background: var(--color-background, #f4f4f2);
+            color: var(--color-text);
+            font: inherit;
+            font-size: 1rem;
+        }
+
+        .gallery-year-picker select:focus-visible {
+            outline: 2px solid var(--color-accent);
+            outline-offset: 3px;
+        }
+    }
+
+    /* Keep the top destination clear of the sticky navigation. */
+    .gallery-intro {
+        scroll-margin-top: calc(var(--nav-height) + 24px);
+    }
+
+    /* Place a comfortably tappable up-arrow beside each year heading. */
+    .gallery-year-heading {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .gallery-year-heading h2 {
+        margin: 0;
+    }
+
+    .gallery-back-top {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        min-width: 44px;
+        min-height: 44px;
+        border-radius: 8px;
+        font-size: 1.5rem;
+        line-height: 1;
+        text-decoration: none;
+    }
+
+    .gallery-back-top:hover {
+        background: var(--color-accent);
+        color: #fff;
+    }
+
+</style>

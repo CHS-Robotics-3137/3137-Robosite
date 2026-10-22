@@ -10,6 +10,7 @@
     },
     "dependencies": {
         "astro": "^7.4.0",
+        "photoswipe": "5.4.4",
         "rehype-stringify": "^10.0.1",
         "remark-directive": "^4.0.0",
         "remark-parse": "^11.0.0",
