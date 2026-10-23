@@ -135,7 +135,7 @@ const archiveRecords = photos.map((entry) => ({
     description="Explore photographs of Team 3137’s robots, people, competitions, and history."
 >
     <div class="gallery-page">
-        <header class="gallery-intro" id="gallery-top" tabindex="-1">
+        <header class="gallery-intro" id="gallery-top">
             <h1>{gallery.title}</h1>
 
             <!-- HTML comes only from our build-time Markdown conversion. -->
@@ -308,11 +308,17 @@ const archiveRecords = photos.map((entry) => ({
                                 >
                                     <Image
                                         src={entry.photo}
-                                        alt={entry.title}
+                                        alt=""
                                         widths={entry.thumbnailWidths}
                                         sizes="(max-width: 700px) calc(100vw - 40px), (max-width: 1000px) calc((100vw - 68px) / 2), (max-width: 1200px) calc((100vw - 88px) / 3), 371px"
                                         format="webp"
-                                        loading={entry.id === groups[0]?.items[0]?.id ? "eager" : "lazy"}
+                                        loading={
+                                            entry.id === groups[0]?.items[0]?.id ||
+                                            entry.image === "2026/robot/Roboot-Img-Angle.png" ||
+                                            entry.image === "2026/robot/Robot-img-top.png"
+                                                ? "eager"
+                                                : "lazy"
+                                        }
                                         fetchpriority={entry.id === groups[0]?.items[0]?.id ? "high" : "auto"}
                                         class="gallery-photo"
                                     />
@@ -373,18 +379,37 @@ const archiveRecords = photos.map((entry) => ({
 
 <script>
     /*
-     * Enhance ordinary photo links with a locally bundled viewer.
-     * Without JavaScript, those links still open the optimized images.
+     * Enhance ordinary photo links and desktop search without blocking first paint.
+     * Phones skip desktop search indexing completely unless widened > 700px.
      */
-    import PhotoSwipeLightbox from "photoswipe/lightbox";
-    import { initGalleryControls } from "../lib/galleryControls";
+    const runWhenIdle = (fn: () => void) => {
+        if ("requestIdleCallback" in window) {
+            window.requestIdleCallback(fn, { timeout: 1200 });
+        } else {
+            setTimeout(fn, 180);
+        }
+    };
 
-    initGalleryControls();
+    let controlsReady = false;
+    const bootDesktopSearch = async () => {
+        if (controlsReady || window.matchMedia("(max-width: 700px)").matches) {
+            return;
+        }
+        controlsReady = true;
+        const { initGalleryControls } = await import("../lib/galleryControls");
+        initGalleryControls();
+    };
 
-    /*
-     * Enhance phone year navigation without filtering any photographs.
-     * Keep ordinary links available if JavaScript does not run.
-     */
+    if (window.location.search.length > 1) {
+        bootDesktopSearch();
+    } else {
+        const toolbar = document.querySelector(".gallery-toolbar");
+        toolbar?.addEventListener("pointerenter", bootDesktopSearch, { once: true });
+        toolbar?.addEventListener("focusin", bootDesktopSearch, { once: true });
+        window.addEventListener("resize", bootDesktopSearch, { passive: true });
+        runWhenIdle(bootDesktopSearch);
+    }
+
     const yearSelect =
         document.querySelector<HTMLSelectElement>("#gallery-year-select");
 
@@ -392,247 +417,171 @@ const archiveRecords = photos.map((entry) => ({
         yearSelect.addEventListener("change", () => {
             const section = document.getElementById(yearSelect.value);
             if (!section) return;
-
-            // Native anchor navigation respects the section's scroll margin.
             window.location.hash = section.id;
-
-            // Move keyboard/screen-reader focus to the destination heading.
             const heading = section.querySelector<HTMLHeadingElement>("h2");
             if (heading) {
                 heading.setAttribute("tabindex", "-1");
                 heading.focus({ preventScroll: true });
             }
-
-            // Allow the same year to be selected again after scrolling away.
             yearSelect.value = "";
         });
     }
 
-    const lightbox = new PhotoSwipeLightbox({
-        // One collection across all year sections, in document order.
-        gallery: ".gallery-page",
-        children: ".gallery-item:not([hidden]) a.photo-link",
-
-        // Load the main viewer code when needed, not during initial rendering.
-        pswpModule: () => import("photoswipe"),
-
-        // Stop at the beginning/end rather than wrapping around.
-        loop: false,
-
-        // Preload only one next image instead of the whole collection.
-        preload: [0, 1],
-
-        // Support keyboard navigation and return focus after closing.
-        escKey: true,
-        arrowKeys: true,
-        returnFocus: true,
+    // One delegated listener instead of 162 separate listeners on .caption-open
+    document.querySelector(".gallery-page")?.addEventListener("click", (event) => {
+        if (
+            !(event instanceof MouseEvent) ||
+            event.button !== 0 ||
+            event.ctrlKey ||
+            event.metaKey ||
+            event.shiftKey ||
+            event.altKey
+        ) {
+            return;
+        }
+        const captionLink = (event.target as Element | null)?.closest(".caption-open");
+        if (!captionLink) return;
+        const photoLink = captionLink
+            .closest(".gallery-item")
+            ?.querySelector<HTMLAnchorElement>("a.photo-link");
+        if (!photoLink) return;
+        event.preventDefault();
+        photoLink.click();
     });
 
-        /*
-     * Place the title beside the counter without reducing image space.
-     * Desktop hover and keyboard focus reveal the description.
-     * Tapping/clicking the title toggles it explicitly.
-     */
-    lightbox.on("uiRegister", () => {
-        const pswp = lightbox.pswp;
-        if (!pswp) return;
-        const phoneView = window.matchMedia("(max-width: 700px)").matches;
-        /*
-         * Phones start with a clean photograph.
-         * After opening, use PhotoSwipe's existing control visibility:
-         * tapping the photograph reveals or hides the controls normally.
-         */
-        if (phoneView) {
-            pswp.on("openingAnimationEnd", () => {
-                pswp.element?.classList.remove("pswp--ui-visible");
-            });
-        }
+    runWhenIdle(async () => {
+        const { default: PhotoSwipeLightbox } = await import("photoswipe/lightbox");
 
-        pswp.ui?.registerElement({
-            name: "archive-details",
-            order: 7,
-            appendTo: "bar",
-            isButton: false,
+        const lightbox = new PhotoSwipeLightbox({
+            gallery: ".gallery-page",
+            children: ".gallery-item:not([hidden]) a.photo-link",
+            pswpModule: () => import("photoswipe"),
+            loop: false,
+            preload: [0, 1],
+            escKey: true,
+            arrowKeys: true,
+            returnFocus: true,
+        });
 
-            onInit: (panel) => {
-                /*
-                 * Desktop uses a toggle button.
-                 * Phone uses a heading: tapping the photograph already
-                 * shows or hides PhotoSwipe's entire control layer.
-                 */
-                const titleButton = document.createElement(
-                    phoneView ? "h2" : "button",
-                );
-                titleButton.className = "viewer-title-toggle";
+        lightbox.on("uiRegister", () => {
+            const pswp = lightbox.pswp;
+            if (!pswp) return;
+            const phoneView = window.matchMedia("(max-width: 700px)").matches;
+            if (phoneView) {
+                pswp.on("openingAnimationEnd", () => {
+                    pswp.element?.classList.remove("pswp--ui-visible");
+                });
+            }
 
-                if (!phoneView) {
-                    titleButton.setAttribute("type", "button");
-                    titleButton.setAttribute(
-                        "aria-controls",
-                        "gallery-viewer-description",
+            pswp.ui?.registerElement({
+                name: "archive-details",
+                order: 7,
+                appendTo: "bar",
+                isButton: false,
+                onInit: (panel) => {
+                    const titleButton = document.createElement(
+                        phoneView ? "h2" : "button",
                     );
-                }
-
-                const description = document.createElement("div");
-                description.id = "gallery-viewer-description";
-                description.className = "viewer-caption";
-
-                panel.append(titleButton, description);
-
-                let pinnedOpen = false;
-                let hovered = false;
-                let keyboardFocused = false;
-
-                const renderVisibility = () => {
-                    /*
-                     * Phone title and description stay together inside
-                     * PhotoSwipe's existing show/hide control layer.
-                     * Only desktop needs our separate reveal behavior.
-                     */
-                    if (phoneView) {
-                        description.hidden = false;
-                        return;
-                    }
-
-                    const open =
-                        pinnedOpen || hovered || keyboardFocused;
-
-                    description.hidden = !open;
-                    titleButton.setAttribute(
-                        "aria-expanded",
-                        String(open),
-                    );
-                };
-
-                const isCaptionTarget = (target: EventTarget | null) =>
-                    target instanceof Element &&
-                    Boolean(
-                        target.closest(
-                            ".pswp__archive-details, .pswp__button--arrow",
-                        ),
-                    );
-
-                /*
-                 * Delegate hover handling so moving from an arrow into
-                 * the caption keeps the description available.
-                 * Touch input does not create sticky hover states.
-                 */
-                const root = pswp.element;
-
-                root?.addEventListener("pointerover", (event) => {
-                    if (
-                        event.pointerType !== "mouse" &&
-                        event.pointerType !== "pen"
-                    ) {
-                        return;
-                    }
-
-                    hovered = isCaptionTarget(event.target);
-                    renderVisibility();
-                });
-
-                root?.addEventListener("pointerout", (event) => {
-                    if (
-                        event.pointerType !== "mouse" &&
-                        event.pointerType !== "pen"
-                    ) {
-                        return;
-                    }
-
-                    hovered = isCaptionTarget(event.relatedTarget);
-                    renderVisibility();
-                });
-
-                root?.addEventListener("focusin", (event) => {
-                    keyboardFocused =
-                        isCaptionTarget(event.target) &&
-                        event.target instanceof Element &&
-                        event.target.matches(":focus-visible");
-
-                    renderVisibility();
-                });
-
-                root?.addEventListener("focusout", (event) => {
-                    keyboardFocused =
-                        isCaptionTarget(event.relatedTarget) &&
-                        event.relatedTarget instanceof Element &&
-                        event.relatedTarget.matches(":focus-visible");
-
-                    renderVisibility();
-                });
-
-                if (!phoneView) {
-                    titleButton.addEventListener("click", () => {
-                        pinnedOpen = !pinnedOpen;
-                        renderVisibility();
-                    });
-                }
-
-                const updateDetails = () => {
-                    const template = pswp.currSlide?.data.element
-                        ?.closest(".gallery-item")
-                        ?.querySelector<HTMLTemplateElement>(
-                            "template.viewer-details",
+                    titleButton.className = "viewer-title-toggle";
+                    if (!phoneView) {
+                        titleButton.setAttribute("type", "button");
+                        titleButton.setAttribute(
+                            "aria-controls",
+                            "gallery-viewer-description",
                         );
+                    }
 
-                    titleButton.textContent =
-                        template?.content.querySelector(".viewer-title")
-                            ?.textContent ?? "Photo";
+                    const description = document.createElement("div");
+                    description.id = "gallery-viewer-description";
+                    description.className = "viewer-caption";
+                    panel.append(titleButton, description);
 
-                    const caption =
-                        template?.content.querySelector(".viewer-caption");
+                    let pinnedOpen = false;
+                    let hovered = false;
+                    let keyboardFocused = false;
 
-                    description.replaceChildren();
+                    const renderVisibility = () => {
+                        if (phoneView) {
+                            description.hidden = false;
+                            return;
+                        }
+                        const open = pinnedOpen || hovered || keyboardFocused;
+                        description.hidden = !open;
+                        titleButton.setAttribute("aria-expanded", String(open));
+                    };
 
-                    if (caption) {
-                        description.append(
-                            ...Array.from(caption.childNodes, (node) =>
-                                node.cloneNode(true),
+                    const isCaptionTarget = (target: EventTarget | null) =>
+                        target instanceof Element &&
+                        Boolean(
+                            target.closest(
+                                ".pswp__archive-details, .pswp__button--arrow",
                             ),
                         );
+
+                    const root = pswp.element;
+                    root?.addEventListener("pointerover", (event) => {
+                        if (event.pointerType !== "mouse" && event.pointerType !== "pen") return;
+                        hovered = isCaptionTarget(event.target);
+                        renderVisibility();
+                    });
+                    root?.addEventListener("pointerout", (event) => {
+                        if (event.pointerType !== "mouse" && event.pointerType !== "pen") return;
+                        hovered = isCaptionTarget(event.relatedTarget);
+                        renderVisibility();
+                    });
+                    root?.addEventListener("focusin", (event) => {
+                        keyboardFocused =
+                            isCaptionTarget(event.target) &&
+                            event.target instanceof Element &&
+                            event.target.matches(":focus-visible");
+                        renderVisibility();
+                    });
+                    root?.addEventListener("focusout", (event) => {
+                        keyboardFocused =
+                            isCaptionTarget(event.relatedTarget) &&
+                            event.relatedTarget instanceof Element &&
+                            event.relatedTarget.matches(":focus-visible");
+                        renderVisibility();
+                    });
+
+                    if (!phoneView) {
+                        titleButton.addEventListener("click", () => {
+                            pinnedOpen = !pinnedOpen;
+                            renderVisibility();
+                        });
                     }
 
-                    // A new photograph starts with its tap-toggle closed.
-                    pinnedOpen = false;
-                    renderVisibility();
-                };
+                    const updateDetails = () => {
+                        const template = pswp.currSlide?.data.element
+                            ?.closest(".gallery-item")
+                            ?.querySelector<HTMLTemplateElement>(
+                                "template.viewer-details",
+                            );
+                        titleButton.textContent =
+                            template?.content.querySelector(".viewer-title")
+                                ?.textContent ?? "Photo";
+                        const caption =
+                            template?.content.querySelector(".viewer-caption");
+                        description.replaceChildren();
+                        if (caption) {
+                            description.append(
+                                ...Array.from(caption.childNodes, (node) =>
+                                    node.cloneNode(true),
+                                ),
+                            );
+                        }
+                        pinnedOpen = false;
+                        renderVisibility();
+                    };
 
-                pswp.on("change", updateDetails);
-                updateDetails();
-            },
-        });
-    });
-
-    lightbox.init();
-
-    /*
-     * Caption links open the matching photo without becoming extra slides.
-     * Modified clicks retain their ordinary browser link behavior.
-     */
-    document
-        .querySelectorAll<HTMLAnchorElement>(".gallery-item .caption-open")
-        .forEach((captionLink) => {
-            captionLink.addEventListener("click", (event) => {
-                if (
-                    event.button !== 0 ||
-                    event.ctrlKey ||
-                    event.metaKey ||
-                    event.shiftKey ||
-                    event.altKey
-                ) {
-                    return;
-                }
-
-                const photoLink = captionLink
-                    .closest(".gallery-item")
-                    ?.querySelector<HTMLAnchorElement>("a.photo-link");
-
-                if (!photoLink) return;
-
-                event.preventDefault();
-                photoLink.click();
+                    pswp.on("change", updateDetails);
+                    updateDetails();
+                },
             });
         });
+
+        lightbox.init();
+    });
 </script>
 
 <style>

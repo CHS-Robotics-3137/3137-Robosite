@@ -1,54 +1,81 @@
 ---
 /**
  * BaseLayout.astro
- * Shared HTML document structure for the website
- * Provides page metadata, navigation, and a place for each page's content
+ * Shared HTML document structure, navigation, and instant theme selection.
  */
 import Navigation from "../components/Navigation.astro";
 import Footer from "../components/Footer.astro";
+import ThemeDecorations from "../components/ThemeDecorations.astro";
+import { readTheme } from "../lib/readTheme";
+import themeMarkdown from "../content/theme.md?raw";
+import themeCss from "../styles/theme.css?raw";
 import "../styles/theme.css";
 
-// Choose the active preset from src/styles/theme.css ("default", "halloween", etc.).
-const activeTheme = "halloween";
-
-// Pages can supply their own title and optional search-result summary.
 interface Props {
     title?: string;
     description?: string;
 }
 
 const { title = "Our Robotics Team", description } = Astro.props;
-// A supplied hero slot means navigation should overlap its bottom edge.
 const hasHero = Astro.slots.has("hero");
+const themeRegistry = readTheme(themeMarkdown, themeCss);
+const themeBootJson = JSON.stringify(themeRegistry).replace(/</g, "\\u003c");
 ---
 
 <!doctype html>
-<html lang="en" data-theme={activeTheme}>
+<html lang="en" data-theme={themeRegistry.fallbackTheme}>
     <head>
         <meta charset="UTF-8" />
-        <!-- Allow the layout to adapt to the device's screen width -->
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{title}</title>
-        <!-- Search engines may use this summary in results. -->
         {description && <meta name="description" content={description} />}
-        <!-- Tell search engines the canonical URL for this page. -->
         <link rel="canonical" href={Astro.url.href} />
-        <!-- Use the favicon -->
         <link
             rel="icon"
             href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/images/favicon.ico`}
             sizes="any"
         />
-        <!-- Flag JavaScript availability before first paint to prevent layout shifts. -->
-        <script is:inline>
-            document.documentElement.classList.add("js");
+        <script is:inline define:vars={{ themeBootJson }}>
+            (function () {
+                var root = document.documentElement;
+                root.classList.add("js");
+                var cfg = JSON.parse(themeBootJson);
+                var key = "team3137-active-theme";
+                var nav = performance.getEntriesByType && performance.getEntriesByType("navigation")[0];
+                var isReload = nav && nav.type === "reload";
+                var picked = null;
+
+                try {
+                    if (!isReload) picked = sessionStorage.getItem(key);
+                } catch (_) {}
+
+                if (!picked || cfg.allThemes.indexOf(picked) === -1) {
+                    var month = new Date().getMonth();
+                    var base = cfg.mode === "auto" ? (cfg.monthMap[month] || "default") : cfg.mode;
+                    if (cfg.allThemes.indexOf(base) === -1) base = "default";
+                    var others = cfg.allThemes.filter(function (t) { return t !== base; });
+                    picked = others.length > 0 && Math.random() < cfg.randomChance
+                        ? others[Math.floor(Math.random() * others.length)]
+                        : base;
+                    try {
+                        sessionStorage.setItem(key, picked);
+                    } catch (_) {}
+                }
+
+                root.dataset.theme = picked;
+                var fontUrl = cfg.fontsByTheme[picked];
+                if (fontUrl) {
+                    var link = document.createElement("link");
+                    link.rel = "stylesheet";
+                    link.href = fontUrl;
+                    document.head.appendChild(link);
+                }
+            })();
         </script>
     </head>
     <body>
-        <!-- Pages can supply an opening hero above the shared navigation. -->
         <slot name="hero" />
 
-        <!-- Stick to the top once scrolling brings the navigation there. -->
         <div
             class:list={[
                 "sticky-navigation",
@@ -56,13 +83,12 @@ const hasHero = Astro.slots.has("hero");
             ]}
         >
             <Navigation />
+            <ThemeDecorations themes={themeRegistry.allThemes} />
         </div>
 
         <main>
-            <!-- Insert the rest of the individual page's content here. -->
             <slot />
         </main>
-        <!-- Show the manually maintained update year on every page. -->
         <Footer />
     </body>
 </html>

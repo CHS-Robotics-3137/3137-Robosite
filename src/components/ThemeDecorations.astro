@@ -1,0 +1,440 @@
+---
+/*
+ * ThemeDecorations.astro
+ * Auto-detects and optimizes optional seasonal art & cursors dropped into:
+ *   src/assets/themes/<theme-name>/
+ *
+ * Official 8 supported filenames (.png, .webp, .jpg, or .svg — any size):
+ *   1. corner-top-left.*     (hangs right underneath left corner of navbar)
+ *   2. corner-top-right.*    (hangs right underneath right corner of navbar)
+ *   3. corner-bottom-left.*  (large DDLC-style hopping bottom-left sticker)
+ *   4. corner-bottom-right.* (large DDLC-style hopping bottom-right sticker)
+ *   5. border-trim.*         (hangs steadily along bottom edge of navbar ONLY)
+ *   6. ambient-sprite.*      (a few scattered drifting sprites — e.g. bats,
+ *                             snowflakes, leaves; also accepts background-pattern.*)
+ *   7. cursor.*              (normal mouse pointer, auto-sized <= 32px)
+ *   8. cursor-pointer.*      (link/button hover pointer, auto-sized <= 32px)
+ */
+import { getImage } from "astro:assets";
+import type { ImageMetadata } from "astro";
+
+interface Props {
+    themes: string[];
+}
+
+const { themes } = Astro.props;
+
+const themeAssets = import.meta.glob<ImageMetadata>(
+    "/src/assets/themes/**/*.{png,jpg,jpeg,webp,svg}",
+    { eager: true, import: "default" },
+);
+
+function findThemeAsset(themeName: string, slotNames: string[]) {
+    for (const slotName of slotNames) {
+        const prefix = `/src/assets/themes/${themeName}/${slotName}.`;
+        const key = Object.keys(themeAssets).find((p) =>
+            p.toLowerCase().startsWith(prefix.toLowerCase()),
+        );
+        if (key) return themeAssets[key];
+    }
+    return undefined;
+}
+
+async function optimizeSlot(
+    themeName: string,
+    slotNames: string | string[],
+    maxWidth: number,
+    format: "webp" | "png" = "webp",
+) {
+    const names = Array.isArray(slotNames) ? slotNames : [slotNames];
+    const asset = findThemeAsset(themeName, names);
+    if (!asset) return null;
+    if (asset.format === "svg") {
+        return { src: asset.src, width: asset.width, height: asset.height };
+    }
+    const res = await getImage({
+        src: asset,
+        width: Math.min(maxWidth, asset.width),
+        format,
+    });
+    return {
+        src: res.src,
+        width: Number(res.attributes.width) || maxWidth,
+        height: Number(res.attributes.height) || maxWidth,
+    };
+}
+
+const dynamicCssParts: string[] = [];
+const packs = [];
+
+for (const name of themes.filter((t) => t !== "default")) {
+    const topLeft = await optimizeSlot(name, "corner-top-left", 320);
+    const topRight = await optimizeSlot(name, "corner-top-right", 320);
+    const bottomLeft = await optimizeSlot(name, "corner-bottom-left", 320);
+    const bottomRight = await optimizeSlot(name, "corner-bottom-right", 320);
+    const borderTrim = await optimizeSlot(name, "border-trim", 240);
+    const ambientSprite = await optimizeSlot(
+        name,
+        ["ambient-sprite", "background-pattern"],
+        180,
+    );
+    const cursorDefault = await optimizeSlot(name, "cursor", 32, "png");
+    const cursorPointer = await optimizeSlot(name, "cursor-pointer", 32, "png");
+
+    dynamicCssParts.push(
+        `:root[data-theme="${name}"] .theme-pack[data-for-theme="${name}"] { display: contents; }`,
+    );
+
+    if (borderTrim) {
+        dynamicCssParts.push(`
+            :root[data-theme="${name}"] .team-navigation::after {
+                content: ""; display: block; position: absolute;
+                left: 0; right: 0; bottom: 0px; height: 24px; z-index: 6;
+                pointer-events: none;
+                background: url("${borderTrim.src}") repeat-x left top / auto 24px;
+                filter: drop-shadow(0 0 2px var(--deco-glow, rgba(255,179,71,.85)))
+                        drop-shadow(0 0 8px var(--deco-glow, rgba(255,179,71,.5)));
+            }
+        `);
+    }
+    if (cursorDefault) {
+        dynamicCssParts.push(
+            `:root[data-theme="${name}"] body { cursor: url("${cursorDefault.src}") 2 2, auto; }`,
+        );
+    }
+    if (cursorPointer) {
+        dynamicCssParts.push(
+            `:root[data-theme="${name}"] :is(a, button, summary, select, [role="button"], .theme-sticker) { cursor: url("${cursorPointer.src}") 6 2, pointer; }`,
+        );
+    }
+
+    if (topLeft || topRight || ambientSprite || bottomLeft || bottomRight) {
+        packs.push({ name, topLeft, topRight, ambientSprite, bottomLeft, bottomRight });
+    }
+}
+
+const dynamicCss = dynamicCssParts.join("\n");
+---
+
+{packs.map((p) => (
+    <template id={`theme-pack-${p.name}`} data-for-theme={p.name}>
+        <div class="theme-pack" data-for-theme={p.name}>
+            {(p.topLeft || p.topRight) && (
+                <div class="theme-nav-corners" aria-hidden="true">
+                    {p.topLeft && <img class="theme-deco corner-top-left" src={p.topLeft.src} width={p.topLeft.width} height={p.topLeft.height} alt="" data-image-component="true" loading="eager" />}
+                    {p.topRight && <img class="theme-deco corner-top-right" src={p.topRight.src} width={p.topRight.width} height={p.topRight.height} alt="" data-image-component="true" loading="eager" />}
+                </div>
+            )}
+            {p.ambientSprite && (
+                <div class="theme-ambient-layer" aria-hidden="true">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                        <img class={`theme-deco ambient-item ambient-${i}`} src={p.ambientSprite!.src} width={p.ambientSprite!.width} height={p.ambientSprite!.height} alt="" data-image-component="true" />
+                    ))}
+                </div>
+            )}
+            {(p.bottomLeft || p.bottomRight) && (
+                <div class="theme-bottom-stickers" aria-hidden="true">
+                    {p.bottomLeft && <img class="theme-deco theme-sticker sticker-left" src={p.bottomLeft.src} width={p.bottomLeft.width} height={p.bottomLeft.height} alt="" data-image-component="true" />}
+                    {p.bottomRight && <img class="theme-deco theme-sticker sticker-right" src={p.bottomRight.src} width={p.bottomRight.width} height={p.bottomRight.height} alt="" data-image-component="true" />}
+                </div>
+            )}
+        </div>
+    </template>
+))}
+
+{dynamicCss && <style is:inline set:html={dynamicCss} />}
+
+<script>
+    // Stamp only the selected theme's decorations into the live page.
+    const activeTheme = document.documentElement.dataset.theme;
+    const activePack = activeTheme
+        ? document.getElementById(`theme-pack-${activeTheme}`)
+        : null;
+
+    if (activePack instanceof HTMLTemplateElement) {
+        const decorations = activePack.content.cloneNode(true) as DocumentFragment;
+        const navCorners =
+            decorations.querySelector<HTMLElement>(".theme-nav-corners");
+
+        document.body.append(decorations);
+
+        if (navCorners) {
+            document.querySelector(".team-navigation")?.append(navCorners);
+        }
+    }
+
+    // Move the bottom stickers up as the hero navigation scrolls into place.
+    const stickyNavigation =
+        document.querySelector<HTMLElement>(".sticky-navigation");
+
+    const updateStickerPosition = () => {
+        const navTop = stickyNavigation?.getBoundingClientRect().top ?? 0;
+        const bottomOffset = 8 - Math.max(0, navTop);
+
+        document.documentElement.style.setProperty(
+            "--theme-sticker-bottom",
+            `${bottomOffset}px`,
+        );
+    };
+
+    updateStickerPosition();
+    window.addEventListener("scroll", updateStickerPosition, {
+        passive: true,
+    });
+    window.addEventListener("resize", updateStickerPosition, {
+        passive: true,
+    });
+
+    document.querySelectorAll<HTMLElement>(".theme-sticker").forEach((el) => {
+        let jumpTimer: number | undefined;
+
+        el.addEventListener("pointerdown", () => {
+            const jumpIsPlaying = el.getAnimations().some(
+                (animation) =>
+                    (animation as CSSAnimation).animationName ===
+                        "sticker-excited-jump" &&
+                    animation.playState === "running",
+            );
+
+            if (jumpIsPlaying) return;
+
+            el.classList.add("is-boinging");
+
+            // Restart the existing CSS keyframes if hover already selected them.
+            el.style.animation = "none";
+            void el.offsetWidth;
+            el.style.removeProperty("animation");
+
+            window.clearTimeout(jumpTimer);
+            jumpTimer = window.setTimeout(() => {
+                el.classList.remove("is-boinging");
+            }, 700);
+        });
+
+        el.addEventListener("animationend", (event) => {
+            if (event.animationName.includes("sticker-excited-jump")) {
+                window.clearTimeout(jumpTimer);
+                el.classList.remove("is-boinging");
+            }
+        });
+    });
+
+    // Resume decorative animations after the page has loaded and settled.
+    const enableThemeAnimations = () => {
+        window.setTimeout(() => {
+            document.documentElement.classList.add("anim-ready");
+        }, 1800);
+    };
+
+    if (document.readyState === "complete") {
+        enableThemeAnimations();
+    } else {
+        window.addEventListener("load", enableThemeAnimations, { once: true });
+    }
+</script>
+
+<style>
+    .theme-pack {
+        display: none;
+    }
+    
+    .theme-deco {
+        height: auto;
+        filter:
+            drop-shadow(0 0 2px var(--deco-glow, rgba(255, 179, 71, 0.9)))
+            drop-shadow(0 0 11px var(--deco-glow, rgba(255, 146, 51, 0.55)));
+    }
+
+    /* Hang the corners directly below the navigation, wherever it sits. */
+    .theme-nav-corners {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        left: 0;
+        z-index: 5;
+        height: 0;
+        pointer-events: none;
+    }
+
+    .corner-top-left {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: clamp(84px, 11vw, 156px);
+    }
+
+    .corner-top-right {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: clamp(84px, 11vw, 156px);
+    }
+
+    /* Scattered atmospheric sprites along side margins (never covering center copy). */
+    .theme-ambient-layer {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        overflow: hidden;
+    }
+
+    .ambient-item {
+        position: absolute;
+        opacity: 0.48;
+        animation: ambient-drift 8.5s ease-in-out infinite;
+    }
+
+    .ambient-1 {
+        top: 22%;
+        left: 3.5%;
+        width: clamp(36px, 4.5vw, 62px);
+        animation-duration: 7.8s;
+    }
+
+    .ambient-2 {
+        top: 30%;
+        right: 4%;
+        width: clamp(30px, 3.6vw, 50px);
+        animation-delay: -3.2s;
+        animation-duration: 9.4s;
+    }
+
+    .ambient-3 {
+        top: 58%;
+        left: 6%;
+        width: clamp(28px, 3.2vw, 44px);
+        opacity: 0.35;
+        animation-delay: -5.5s;
+        animation-duration: 10.6s;
+    }
+
+    .ambient-4 {
+        top: 64%;
+        right: 5.5%;
+        width: clamp(38px, 4.6vw, 64px);
+        animation-delay: -1.8s;
+        animation-duration: 8.2s;
+    }
+
+    .ambient-5 {
+        top: 44%;
+        right: 13%;
+        width: clamp(24px, 2.8vw, 38px);
+        opacity: 0.28;
+        animation-delay: -6.9s;
+        animation-duration: 11.4s;
+    }
+
+    @keyframes ambient-drift {
+        0%,
+        100% {
+            transform: translate(0, 0) rotate(-6deg);
+        }
+        50% {
+            transform: translate(10px, -14px) rotate(6deg);
+        }
+    }
+
+    @media (max-width: 700px) {
+        .ambient-3,
+        .ambient-5 {
+            display: none;
+        }
+    }
+
+    .theme-bottom-stickers {
+        position: fixed;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        height: 0;
+        z-index: 90;
+        pointer-events: none;
+    }
+
+    .theme-sticker {
+        position: fixed;
+        bottom: var(--theme-sticker-bottom, 8px);
+        width: clamp(84px, 11vw, 144px);
+        transform-origin: center bottom;
+        pointer-events: auto;
+        user-select: none;
+        -webkit-user-drag: none;
+        animation: ddlc-idle-hop 5.6s cubic-bezier(0.28, 0.84, 0.42, 1) infinite;
+    }
+
+    .sticker-left {
+        left: clamp(8px, 2vw, 24px);
+    }
+
+    .sticker-right {
+        right: clamp(8px, 2vw, 24px);
+        animation-delay: -2.8s;
+    }
+
+    .theme-sticker:hover,
+    .theme-sticker.is-boinging {
+        animation: sticker-excited-jump 0.58s cubic-bezier(0.28, 0.84, 0.42, 1);
+        animation-play-state: running;
+    }
+
+    /* Keep decorative animation still during the page's initial load. */
+    .ambient-item {
+        animation-play-state: paused;
+    }
+
+    html.anim-ready .ambient-item {
+        animation-play-state: running;
+    }
+
+    @keyframes ddlc-idle-hop {
+        0%,
+        74%,
+        100% {
+            transform: translateY(0) scale(1, 1);
+        }
+        77% {
+            transform: translateY(0) scale(1.07, 0.92);
+        }
+        82% {
+            transform: translateY(-20px) scale(0.95, 1.05);
+        }
+        87% {
+            transform: translateY(0) scale(1.06, 0.94);
+        }
+        91% {
+            transform: translateY(-10px) scale(0.98, 1.03);
+        }
+        96% {
+            transform: translateY(0) scale(1.03, 0.97);
+        }
+    }
+
+    @keyframes sticker-excited-jump {
+        0% {
+            transform: translateY(0) scale(1.1, 0.88);
+        }
+        35% {
+            transform: translateY(-30px) scale(0.94, 1.08) rotate(-3deg);
+        }
+        68% {
+            transform: translateY(0) scale(1.08, 0.92);
+        }
+        85% {
+            transform: translateY(-12px) scale(0.98, 1.03) rotate(2deg);
+        }
+        100% {
+            transform: translateY(0) scale(1, 1);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .ambient-item,
+        .theme-sticker,
+        .theme-sticker:hover,
+        .theme-sticker.is-boinging {
+            animation: none;
+        }
+    }
+</style>

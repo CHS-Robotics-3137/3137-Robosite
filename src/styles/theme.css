@@ -2,66 +2,46 @@
  * theme.css
  * Central design presets shared across every page via BaseLayout.astro.
  *
- * HOW THEME SWITCHING WORKS:
- * 1. ":root" defines the normal year-round Team 3137 theme ("default") and
- *    acts as the automatic fallback if a preset omits any variable.
- * 2. Named seasonal presets live below as :root[data-theme="name"] { ... }.
- * 3. To switch the active theme across the whole site, change the single
- *    `activeTheme` constant near the top of `src/layouts/BaseLayout.astro`
- *    (for example: "default" or "halloween").
- *
- * Fixed hero photo overlays remain local in index.astro so photos stay legible.
- * Image colors, including the animated logo, are not recolored here.
+ * HOW TO USE OR ADD THEMES:
+ * 1. Open `src/content/theme.md` and set `theme: default` or `theme: halloween`.
+ * 2. ":root" defines the normal year-round Team 3137 theme ("default") and
+ *    serves as the automatic fallback for any variable a preset omits.
+ * 3. Add new presets below as `:root[data-theme="your-name"] { ... }`.
+ * 4. Optional Google Fonts live in `src/lib/readTheme.ts` (or `customGoogleFontUrl`
+ *    in `src/content/theme.md`); optional seasonal art/border trim hooks live in
+ *    `src/components/ThemeDecorations.astro`.
  */
 
 /* ==========================================================================
-   1. DEFAULT THEME ("default") — Year-round Team 3137 palette & fonts
+   1. DEFAULT THEME ("default")
    ========================================================================== */
 :root {
     /* ---------- Shared page colors ---------- */
-
-    /* Background behind ordinary page content, including below the hero. */
     --color-background: #f4f4f2;
-
-    /* Default text color inherited from the body, including ordinary headings. */
     --color-text: #202124;
-
-    /* Secondary text color for captions, counts, and supporting copy. */
     --color-text-muted: #555b65;
-
-    /* Accent color used by links, active states, timeline line, and markers. */
     --color-accent: #b42332;
 
     /* ---------- Content & robot card panels ---------- */
-
-    /* Solid dark surface behind homepage panels and robot season cards. */
     --panel-background: #171719;
     --panel-heading: #ffffff;
     --panel-text: #d0d0d4;
 
     /* ---------- Interactive controls (search bar, dropdowns, popups) ---------- */
-
-    /* Main surface behind text inputs, dropdown selects, and popups. */
     --control-background: #ffffff;
-
-    /* Subtle secondary surface for scope tabs, hover highlights, and badges. */
     --control-surface-muted: #eceef2;
-
-    /* Accessible 3:1+ border around inputs, dropdowns, and buttons. */
     --control-border: #7a808a;
 
     /* ---------- Footer appearance ---------- */
-
     --footer-background: #000000;
     --footer-text: #d0d0d4;
 
-    /* ---------- Shared fonts (installed system fonts — zero downloads) ---------- */
-
+    /* ---------- Shared fonts ---------- */
     --font-body: Arial, Helvetica, sans-serif;
+    --font-subheading: Arial, Helvetica, sans-serif;
     --font-heading: Arial, Helvetica, sans-serif;
 
     /* ---------- Navigation appearance & sizing ---------- */
-
     --nav-background: #000000;
     --nav-text: #ffffff;
     --nav-height: 88px;
@@ -69,7 +49,7 @@
 }
 
 /* ==========================================================================
-   2. HALLOWEEN THEME ("halloween") — Midnight plum, pumpkin glow & serifs
+   2. HALLOWEEN THEME ("halloween")
    ========================================================================== */
 :root[data-theme="halloween"] {
     /* ---------- Shared page colors ---------- */
@@ -92,11 +72,36 @@
     --footer-background: #0b0711;
     --footer-text: #ffb347;
 
-    /* ---------- Shared fonts ---------- */
-    --font-body: "Trebuchet MS", "Gill Sans", Verdana, sans-serif;
-    --font-heading: Georgia, "Palatino Linotype", "Book Antiqua", Palatino, serif;
+    /* ---------- Google Fonts (loaded automatically) ---------- */
+    /* Main font first in quotes, followed by 1 backup category if offline: */
+    --font-heading: "Mystery Quest", serif;
+    --font-subheading: "Nosifer", serif;
+    --font-body: "Space Grotesk", sans-serif;
 
     /* ---------- Navigation appearance ---------- */
     --nav-background: #0b0711;
     --nav-text: #ffb347;
+}
+
+/* ==========================================================================
+   SHARED FONT TIER WIRING
+   - --font-heading:    Main hero, page h1, section/panel/robot h2 titles
+   - --font-subheading: Navbar, footer, h3–h6 subheaders, and eyebrow labels
+   - --font-body:       All ordinary body text, descriptions, and controls
+   ========================================================================== */
+h1,
+h2 {
+    font-family: var(--font-heading);
+}
+
+h3,
+h4,
+h5,
+h6,
+.site-footer,
+.hero-team-number,
+.archive-eyebrow,
+.timeline-year,
+.robot-game {
+    font-family: var(--font-subheading);
 }
