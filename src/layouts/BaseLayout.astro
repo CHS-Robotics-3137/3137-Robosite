@@ -18,6 +18,10 @@ interface Props {
 
 const { title = "Our Robotics Team", description } = Astro.props;
 const hasHero = Astro.slots.has("hero");
+const shareImage = new URL(
+    `${import.meta.env.BASE_URL}images/branding/GC-Banner-26-27.png`,
+    Astro.site ?? "https://chs-robotics-3137.github.io",
+).href;
 const themeRegistry = readTheme(themeMarkdown, themeCss);
 const themeBootJson = JSON.stringify(themeRegistry).replace(/</g, "\\u003c");
 ---
@@ -29,6 +33,23 @@ const themeBootJson = JSON.stringify(themeRegistry).replace(/</g, "\\u003c");
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{title}</title>
         {description && <meta name="description" content={description} />}
+        {description && (
+            <>
+                <meta property="og:type" content="website" />
+                <meta property="og:site_name" content="Connetquot T-Birds Robotics" />
+                <meta property="og:title" content={title} />
+                <meta property="og:description" content={description} />
+                <meta property="og:url" content={Astro.url.href} />
+                <meta property="og:image" content={shareImage} />
+                <meta property="og:image:width" content="1600" />
+                <meta property="og:image:height" content="400" />
+                <meta property="og:image:alt" content="Connetquot T-Birds Robotics team banner, 2026–2027" />
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content={title} />
+                <meta name="twitter:description" content={description} />
+                <meta name="twitter:image" content={shareImage} />
+            </>
+        )}
         <link rel="canonical" href={Astro.url.href} />
         <link
             rel="icon"
