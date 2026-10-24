@@ -56,6 +56,15 @@ const themeBootJson = JSON.stringify(themeRegistry).replace(/</g, "\\u003c");
             href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/images/favicon.ico`}
             sizes="any"
         />
+        <link
+            rel="apple-touch-icon"
+            sizes="180x180"
+            href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/images/icons/apple-touch-icon.png`}
+        />
+        <link
+            rel="manifest"
+            href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/site.webmanifest`}
+        />
         <script is:inline define:vars={{ themeBootJson }}>
             (function () {
                 var root = document.documentElement;
