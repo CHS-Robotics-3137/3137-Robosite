@@ -19,7 +19,8 @@ const photos = import.meta.glob<ImageMetadata>(
 
 // Resolve photos at build time so incorrect paths produce useful errors.
 const seasons = (await parseRobots(robotsMarkdown)).map((season) => {
-    const photo = photos[`/src/assets/images/${season.image}`];
+    const photoPath = `/src/assets/images/${season.image}`;
+    const photo = photos[photoPath];
 
     if (!photo) {
         throw new Error(
@@ -27,7 +28,25 @@ const seasons = (await parseRobots(robotsMarkdown)).map((season) => {
         );
     }
 
-    return { ...season, photo };
+    const robotPrefix = `/src/assets/images/${season.year}/robot/`;
+    const sortedRobotPhotos = Object.entries(photos)
+        .filter(([path]) => path.startsWith(robotPrefix))
+        .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+        .map(([path, image]) => ({ path, image }));
+
+    const currentPhoto = sortedRobotPhotos.find(
+        (entry) => entry.path === photoPath,
+    );
+    const robotSlides = currentPhoto
+        ? [
+              currentPhoto,
+              ...sortedRobotPhotos.filter(
+                  (entry) => entry.path !== photoPath,
+              ),
+          ]
+        : sortedRobotPhotos;
+
+    return { ...season, photo, robotSlides };
 });
 ---
 
@@ -58,16 +77,65 @@ const seasons = (await parseRobots(robotsMarkdown)).map((season) => {
                         aria-labelledby={`${season.id}-heading`}
                     >
                         <!-- Responsive WebP photos avoid serving full originals. -->
-                        <Image
-                            class="robot-photo"
-                            src={season.photo}
-                            alt={`Team 3137 robot: ${season.heading}`}
-                            widths={[320, 520, 760]}
-                            sizes="(max-width: 700px) calc(100vw - 72px), (max-width: 1148px) 40vw, 430px"
-                            format="webp"
-                            loading={index === 0 ? "eager" : "lazy"}
-                            style={{ objectPosition: season.position }}
-                        />
+                        <div class="robot-carousel" data-robot-carousel>
+                            {
+                                (
+                                    season.robotSlides.length > 0
+                                        ? season.robotSlides
+                                        : [
+                                              {
+                                                  path: season.image,
+                                                  image: season.photo,
+                                              },
+                                          ]
+                                ).map((slide, slideIndex) => (
+                                    <div
+                                        class="robot-carousel-slide"
+                                        hidden={slideIndex !== 0}
+                                    >
+                                        <Image
+                                            class="robot-photo"
+                                            src={slide.image}
+                                            alt={
+                                                season.image.startsWith("unknown-robots/")
+                                                    ? "Placeholder image: season robot photo not available yet"
+                                                    : `Team 3137 robot: ${season.heading}`
+                                            }
+                                            widths={[320, 520, 760]}
+                                            sizes="(max-width: 700px) calc(100vw - 72px), (max-width: 1148px) 40vw, 430px"
+                                            format="webp"
+                                            loading={
+                                                index === 0 && slideIndex === 0
+                                                    ? "eager"
+                                                    : "lazy"
+                                            }
+                                            style={{
+                                                objectPosition: season.position,
+                                            }}
+                                        />
+                                    </div>
+                                ))
+                            }
+
+                            {season.robotSlides.length > 1 && (
+                                <div class="robot-carousel-controls" hidden>
+                                    <button
+                                        type="button"
+                                        data-robot-previous
+                                        aria-label={`Previous ${season.year} robot photo`}
+                                    >
+                                        ←
+                                    </button>
+                                    <button
+                                        type="button"
+                                        data-robot-next
+                                        aria-label={`Next ${season.year} robot photo`}
+                                    >
+                                        →
+                                    </button>
+                                </div>
+                            )}
+                        </div>
 
                         <div class="robot-content">
                             <p class="robot-game">{season.game}</p>
@@ -92,6 +160,53 @@ const seasons = (await parseRobots(robotsMarkdown)).map((season) => {
         </ol>
     </div>
 </BaseLayout>
+
+<script>
+    document
+        .querySelectorAll<HTMLElement>("[data-robot-carousel]")
+        .forEach((carousel) => {
+            const slides = Array.from(
+                carousel.querySelectorAll<HTMLElement>(
+                    ".robot-carousel-slide",
+                ),
+            );
+            const controls =
+                carousel.querySelector<HTMLElement>(
+                    ".robot-carousel-controls",
+                );
+            const previous =
+                controls?.querySelector<HTMLButtonElement>(
+                    "[data-robot-previous]",
+                );
+            const next =
+                controls?.querySelector<HTMLButtonElement>(
+                    "[data-robot-next]",
+                );
+            const counter = controls?.querySelector("span[aria-live]");
+
+            if (slides.length < 2 || !controls || !previous || !next) return;
+
+            let current = 0;
+
+            const showSlide = (index: number) => {
+                current = (index + slides.length) % slides.length;
+
+                slides.forEach((slide, slideIndex) => {
+                    slide.hidden = slideIndex !== current;
+                });
+
+                if (counter) {
+                    counter.textContent = `${current + 1} of ${slides.length}`;
+                }
+            };
+
+            previous.addEventListener("click", () => showSlide(current - 1));
+            next.addEventListener("click", () => showSlide(current + 1));
+
+            showSlide(current);
+            controls.hidden = false;
+        });
+</script>
 
 <style>
     /*
@@ -197,6 +312,53 @@ const seasons = (await parseRobots(robotsMarkdown)).map((season) => {
     .robot-content {
         min-width: 0;
         padding: clamp(24px, 3vw, 36px);
+    }
+
+    .robot-carousel {
+        position: relative;
+        min-width: 0;
+        align-self: start;
+    }
+
+    .robot-carousel-slide[hidden],
+    .robot-carousel-controls[hidden] {
+        display: none;
+    }
+
+    .robot-carousel-controls {
+        position: absolute;
+        top: 50%;
+        right: 8px;
+        left: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transform: translateY(-50%);
+        pointer-events: none;
+    }
+
+    .robot-carousel-controls button {
+        display: inline-flex;
+        width: 44px;
+        height: 44px;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: #fff;
+        font: inherit;
+        font-size: 2.5rem;
+        line-height: 1;
+        text-shadow: 0 1px 5px rgba(0, 0, 0, 0.9);
+        pointer-events: auto;
+        cursor: pointer;
+    }
+
+    .robot-carousel-controls button:focus-visible {
+        outline: 2px solid #fff;
+        outline-offset: 2px;
+        border-radius: 4px;
     }
 
     .robot-game {

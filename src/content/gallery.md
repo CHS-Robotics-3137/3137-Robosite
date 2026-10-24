@@ -319,6 +319,34 @@ Team 3137’s pit corner and banner display during the 2024 regional.
 
 Tools, parts, and snacks laid out across Team 3137’s pit table.
 
+<!-- ==================== 2023 ==================== -->
+
+## 2023 robot archive image (1)
+
+::photo{image="2023/robot/robot-from-vid-2.png" year="2023" subjects="Robots" activity="Unknown" credit="Photographer unknown"}
+
+Archival image of Team 3137’s 2023 robot. The source video, event, and capture date have not been identified.
+
+## 2023 robot archive image (2)
+
+::photo{image="2023/robot/robot-from-vid.png" year="2023" subjects="Robots" activity="Unknown" credit="Photographer unknown"}
+
+Another archival image of Team 3137’s 2023 robot. The source video, event, and capture date have not been identified.
+
+<!-- ==================== 2022 ==================== -->
+
+## 2022 robot archive image (1)
+
+::photo{image="2022/robot/vis-robo-1.png" year="2022" subjects="Robots" activity="Unknown" credit="Photographer unknown"}
+
+Archival image of Team 3137’s 2022 robot. The event and capture date have not been identified.
+
+## 2022 robot archive image (2)
+
+::photo{image="2022/robot/vid-robo-2.png" year="2022" subjects="Robots" activity="Unknown" credit="Photographer unknown"}
+
+Another archival image of Team 3137’s 2022 robot. The source video, event, and capture date have not been identified.
+
 <!-- ==================== 2017 ==================== -->
 
 ## Team 3137 and Team 353 on the field

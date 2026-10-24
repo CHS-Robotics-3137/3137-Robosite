@@ -181,17 +181,21 @@ export async function parseRobots(
                 );
             }
 
-            // Robot photos belong to this season's YEAR/robot/ asset folder.
-            // Reject backslashes and empty or relative-navigation segments.
+            // Robot photos belong to this season's YEAR/robot/ folder.
+            // Allow only this exact shared image as a missing-photo placeholder.
+            const isPlaceholderImage = image === "unknown-robots/alph.png";
+            const isSeasonImage = image.startsWith(`${yearText}/`);
+
+            // Reject other paths, backslashes, and empty or relative-navigation segments.
             if (
-                !image.startsWith(`${yearText}/robot/`) ||
+                (!isSeasonImage && !isPlaceholderImage) ||
                 image.includes("\\") ||
                 image.split("/").some(
                     (part) => part === ".." || part === "." || part === "",
                 )
             ) {
                 throw new Error(
-                    `robots.md: "${current.heading}" needs an image path like ${yearText}/robot/photo.png.`,
+                    `robots.md: "${current.heading}" needs an image path like ${yearText}/robot/photo.png or the placeholder unknown-robots/alph.png.`,
                 );
             }
 
